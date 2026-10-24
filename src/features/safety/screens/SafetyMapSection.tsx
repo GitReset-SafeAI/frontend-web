@@ -10,6 +10,7 @@ import type {
 } from '../../../services/contracts'
 import { InfoNote } from '../../../shared/components/InfoNote'
 import { Spinner } from '../../../shared/components/Spinner'
+import { JourneyPanel } from '../components/JourneyPanel'
 import { JourneyPlanner, type PlannerPoint, type PlannerTarget } from '../components/JourneyPlanner'
 import { EstimateLimitsNote } from '../components/EstimateLimitsNote'
 import { MapEvidenceNotice } from '../components/MapEvidenceNotice'
@@ -18,6 +19,7 @@ import { SafetyAreaList } from '../components/SafetyAreaList'
 import { SafetyMapCanvas } from '../components/SafetyMapCanvas'
 import { TimePeriodSelector } from '../components/TimePeriodSelector'
 import { useCurrentLocation } from '../hooks/useCurrentLocation'
+import { useLiveJourney } from '../hooks/useLiveJourney'
 import { useRouteComparison } from '../hooks/useRouteComparison'
 import { useSafetyMapHotspots } from '../hooks/useSafetyMapHotspots'
 import { clampBounds } from '../utils/clampBounds'
@@ -98,6 +100,15 @@ export function SafetyMapSection() {
   const routes = comparison.data?.routes ?? []
   const windowDays = hotspotsQuery.data?.windowDays ?? 30
 
+  // Following happens along the route the traveller actually chose, and warns
+  // about the areas that route passes.
+  const selectedRoute = routes.find((route) => route.id === selectedRouteId) ?? null
+  const journey = useLiveJourney(
+    selectedRoute,
+    destination ? { label: destination.label, coordinate: destination.coordinate } : null,
+    hotspots,
+  )
+
   return (
     <section aria-label={t('planner.title')} className="flex flex-col gap-6">
       <JourneyPlanner
@@ -119,9 +130,9 @@ export function SafetyMapSection() {
         hotspots={hotspots}
         routes={routes}
         selectedRouteId={selectedRouteId}
-        origin={origin?.coordinate ?? null}
+        origin={journey.position ?? origin?.coordinate ?? null}
         destination={destination?.coordinate ?? null}
-        originLabel={origin?.label ?? t('planner.start')}
+        originLabel={journey.position ? t('journey.youAreHere') : origin?.label ?? t('planner.start')}
         destinationLabel={destination?.label ?? t('planner.end')}
         hotspotLabel={(hotspot) =>
           hotspot.areaName
@@ -144,6 +155,23 @@ export function SafetyMapSection() {
           comparison={comparison.data}
           selectedRouteId={selectedRouteId}
           onSelectRoute={setSelectedRouteId}
+        />
+      ) : null}
+
+      {comparison.data ? (
+        <JourneyPanel
+          status={journey.status}
+          remainingSeconds={journey.remainingSeconds}
+          remainingMeters={journey.remainingMeters}
+          arrived={journey.arrived}
+          insideAreas={journey.insideAreas}
+          shareUrl={journey.shareUrl}
+          sharing={journey.sharing}
+          shareError={journey.shareError}
+          canStart={selectedRoute !== null && destination !== null}
+          onStart={journey.start}
+          onStop={() => { void journey.stop() }}
+          onShare={() => { void journey.startSharing() }}
         />
       ) : null}
 

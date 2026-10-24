@@ -5,7 +5,7 @@ import { EmergencyPage, SosPage } from '../features/emergency'
 import { LandingPage } from '../features/landing/LandingPage'
 import { NotFoundPage } from '../features/landing/NotFoundPage'
 import { ReportRoutes } from '../features/reporting'
-import { SafetyPage } from '../features/safety'
+import { SafetyPage, SharedJourneyPage } from '../features/safety'
 import { AppShell } from '../shared/layouts/AppShell'
 import { ScrollToTop } from './ScrollToTop'
 
@@ -23,6 +23,8 @@ export function AppRoutes() {
           <Route path="/account" element={<AccountPage />} />
           <Route path="/report/*" element={<ReportRoutes />} />
           <Route path="/safety" element={<SafetyPage />} />
+          {/* A shared journey: opened by whoever the traveller sent the link to. */}
+          <Route path="/j/:shareId" element={<SharedJourneyPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

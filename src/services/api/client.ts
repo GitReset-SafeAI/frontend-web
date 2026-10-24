@@ -31,8 +31,14 @@ export function createApiClient(baseUrl?: string, timeoutMs = 10_000) {
         if (!response.ok) throw httpError(response.status);
 
         let body: unknown;
-        try { body = await response.json(); }
-        catch { throw new ApiError('invalid-response', 'The server returned an unreadable response.'); }
+        // 204 and an empty body are valid answers: ending a journey says only
+        // that it is gone. Parsing them as JSON would fail on success.
+        if (response.status === 204 || response.headers.get('Content-Length') === '0') {
+          body = undefined;
+        } else {
+          try { body = await response.json(); }
+          catch { throw new ApiError('invalid-response', 'The server returned an unreadable response.'); }
+        }
         const result = schema.safeParse(body);
         if (!result.success) throw new ApiError('invalid-response', 'The server response did not match the expected format.');
         return result.data;

@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { env } from '../../config/env'
 import type { AppServices, HotspotsRequest } from '../contracts'
+import { journeyShareSchema, sharedJourneySchema } from '../contracts/journeys'
 import { placeSuggestionSchema } from '../contracts/places'
 import { hotspotsResultSchema, routeComparisonResultSchema } from '../contracts/safetyMap'
 import { ApiError } from './ApiError'
@@ -53,6 +54,40 @@ export const apiServices: AppServices = {
       if (trimmed.length < 2) return []
       const params = new URLSearchParams({ q: trimmed, limit: String(limit) })
       return client.request(`/api/v1/safety-map/places?${params}`, z.array(placeSuggestionSchema))
+    },
+  },
+  // A journey in progress. The owner key is held by this browser and sent only
+  // on the calls that change the journey; a share link carries neither.
+  journeys: {
+    async start(request) {
+      return client.request('/api/v1/journeys', journeyShareSchema, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origin: request.origin,
+          destination: request.destination,
+          origin_label: request.originLabel,
+          destination_label: request.destinationLabel,
+          geometry: request.geometry,
+          duration_s: request.durationSeconds,
+        }),
+      })
+    },
+    async updatePosition(shareId, ownerKey, position, accuracyMeters) {
+      return client.request(`/api/v1/journeys/${shareId}`, sharedJourneySchema, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-Journey-Key': ownerKey },
+        body: JSON.stringify({ position, accuracy_m: accuracyMeters }),
+      })
+    },
+    async read(shareId) {
+      return client.request(`/api/v1/journeys/${shareId}`, sharedJourneySchema)
+    },
+    async end(shareId, ownerKey) {
+      await client.request(`/api/v1/journeys/${shareId}`, z.unknown(), {
+        method: 'DELETE',
+        headers: { 'X-Journey-Key': ownerKey },
+      })
     },
   },
   safetyMap: {

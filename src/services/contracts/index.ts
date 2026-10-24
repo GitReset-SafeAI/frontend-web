@@ -1,4 +1,5 @@
 import type { AuthService, ContactService } from './account'
+import type { JourneyService } from './journeys'
 import type { ReportService } from './incident'
 import type { PlacesService } from './places'
 import type { SafetyMapService } from './safetyMap'
@@ -29,6 +30,14 @@ export type {
   VoiceTranscript,
 } from './incident'
 
+export type {
+  JourneyService,
+  JourneyShare,
+  JourneyStatus,
+  SharedJourney,
+  StartJourneyRequest,
+} from './journeys'
+
 export type { PlaceSearchRequest, PlacesService, PlaceSuggestion } from './places'
 
 // The safety map speaks the backend's own vocabulary. Still exported as
@@ -56,4 +65,5 @@ export interface AppServices {
   contacts: ContactService
   places: PlacesService
   safetyMap: SafetyMapService
+  journeys: JourneyService
 }

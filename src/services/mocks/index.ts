@@ -1,4 +1,5 @@
 import type { AppServices, HotspotsRequest, HotspotsResult } from '../contracts'
+import { ApiError } from '../api/ApiError'
 import { mockAuth, mockContacts } from './accounts'
 import { analyseSyntheticReport, sampleTranscript } from './fixtures/analysis'
 import { searchDemoPlaces } from './fixtures/places'
@@ -41,6 +42,14 @@ export const mockServices: AppServices = {
       await wait(mockLatencyMs)
       return { text: sampleTranscript }
     },
+  },
+  // Journeys are shared through the backend: a position that only this browser
+  // knows about is not a share. Mock mode says so rather than pretending.
+  journeys: {
+    async start() { throw new ApiError('not-implemented', 'Sharing a journey needs the backend. Set VITE_DATA_MODE=api.') },
+    async updatePosition() { throw new ApiError('not-implemented', 'Sharing a journey needs the backend.') },
+    async read() { throw new ApiError('not-implemented', 'Sharing a journey needs the backend.') },
+    async end() { /* nothing was ever shared */ },
   },
   places: {
     async searchPlaces({ query, limit = 6 }) {
