@@ -73,7 +73,10 @@
     "hint": "Tap a marked area on the map to see what was reported there.",
     "walking": "Walk",
     "driving": "Drive",
-    "subtitle": "Where are you going?"
+    "subtitle": "Where are you going?",
+    "savedResults": "Live search is unavailable. Showing saved public landmarks; check the location on the map.",
+    "searchFailed": "Place search is unavailable. Try again, use your location, or choose a saved landmark.",
+    "retrySearch": "Retry live search"
   },
   "evidence": {
     "insufficient": "Not enough reports to show a pattern",

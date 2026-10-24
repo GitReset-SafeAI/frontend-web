@@ -144,7 +144,7 @@ export function SafetyMapCanvas({
       data-testid="safety-map"
       role="application"
       aria-label={t('mapA11y')}
-      className="safety-map h-[26rem] overflow-hidden rounded-lg border border-line/70 shadow-lift lg:h-[34rem]"
+      className="safety-map isolate h-[26rem] overflow-hidden rounded-lg border border-line/70 shadow-lift lg:h-[34rem]"
     >
       <MapContainer center={center} zoom={13} scrollWheelZoom zoomControl={false} className="size-full">
         {/* OpenStreetMap's own tiles: no API key, and the same data the

@@ -2,6 +2,13 @@
 
 ## Database incident map
 
+Journey place search follows `VITE_SAFETY_MAP_MODE` as well: a live map searches the backend's
+`/api/v1/safety-map/places` endpoint even while accounts or reports use demo mode. If live geocoding
+fails, the search identifies the outage, offers a retry, and lists matching saved public landmarks
+from the existing local directory. This limited directory is not a full address search. Selecting
+a suggestion sets its coordinates; editing a selected name clears those coordinates until another
+suggestion is chosen. Arrow keys and Enter select a result; Escape or leaving the field dismisses it.
+
 The map uses `VITE_SAFETY_MAP_MODE=api` by default, independently of the other features' demo mode.
 Vite proxies `/api` to `VITE_API_BASE_URL` (default `http://127.0.0.1:8001`) in development and preview.
 Restart Vite after changing these values. Production hosting must supply the same `/api` reverse proxy.
