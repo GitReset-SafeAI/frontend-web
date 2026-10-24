@@ -49,8 +49,8 @@ describe('landing and navigation', () => {
       unmount()
     }
     renderApp('/safety')
-    await waitFor(() => { expect(screen.getByRole('heading', { name: 'Colombo Fort & Pettah' })).toBeInTheDocument() })
-    expect(screen.getAllByText('போதிய தரவு இல்லை').length).toBeGreaterThan(0)
+    await waitFor(() => { expect(screen.getByTestId('planner-card')).toBeInTheDocument() })
+    expect(screen.getByRole('heading', { name: 'பயணத்தைத் திட்டமிடுங்கள்' })).toBeInTheDocument()
   })
 
   it('shows a not-found page for unknown routes', () => {
@@ -183,16 +183,201 @@ describe('emergency', () => {
 })
 
 describe('safety map', () => {
-  it('lists aggregated areas with caveats and leaves a slot for the map', async () => {
+  it('clamps a zoomed-out viewport to the bbox the API accepts', async () => {
+    const { clampBounds, MAX_BBOX_DEGREES } = await import('../features/safety/utils/clampBounds')
+
+    // The whole island is wider than the cap; the API answers 422 for this.
+    const wide = clampBounds({
+      southWest: { latitude: 5.0, longitude: 77.0 },
+      northEast: { latitude: 10.0, longitude: 82.0 },
+    })
+    expect(wide.northEast.latitude - wide.southWest.latitude).toBeLessThanOrEqual(MAX_BBOX_DEGREES)
+    expect(wide.northEast.longitude - wide.southWest.longitude).toBeLessThanOrEqual(MAX_BBOX_DEGREES)
+    // Clamped around the centre, so the map keeps showing where you are looking.
+    expect((wide.southWest.latitude + wide.northEast.latitude) / 2).toBeCloseTo(7.5)
+
+    // Zooming in must not shrink what gets clustered: areas are built from the
+    // incidents inside the requested box, so a tight box publishes fewer areas
+    // and they would appear to vanish as you zoom.
+    const { MIN_BBOX_DEGREES } = await import('../features/safety/utils/clampBounds')
+    const street = clampBounds({
+      southWest: { latitude: 6.92, longitude: 79.85 },
+      northEast: { latitude: 6.94, longitude: 79.88 },
+    })
+    expect(street.northEast.latitude - street.southWest.latitude).toBeCloseTo(MIN_BBOX_DEGREES)
+    expect((street.southWest.latitude + street.northEast.latitude) / 2).toBeCloseTo(6.93)
+
+    // A city-sized viewport is already within both limits and passes through.
+    const city = { southWest: { latitude: 6.78, longitude: 79.8 }, northEast: { latitude: 7.0, longitude: 79.95 } }
+    expect(clampBounds(city)).toEqual(city)
+  })
+
+  it('states that safety information has limits', async () => {
     const user = userEvent.setup()
     renderApp('/safety')
-    await waitFor(() => { expect(screen.getByRole('heading', { name: 'Colombo Fort & Pettah' })).toBeInTheDocument() })
-    expect(screen.getByTestId('map-slot')).toBeInTheDocument()
-    expect(screen.getAllByText(/does not mean (an area is )?safe|few reports does not mean/i).length).toBeGreaterThan(0)
-    // Shown in the legend and on the low-data areas themselves.
-    expect(screen.getAllByText('Not enough data').length).toBeGreaterThan(1)
+    const note = await screen.findByRole('button', { name: /safety information has limits/i })
+    // Folded by default: the heading carries the caveat on its own.
+    expect(note).toHaveAttribute('aria-expanded', 'false')
+    await user.click(note)
+    expect(screen.getByText(/no route can be guaranteed safe/i)).toBeInTheDocument()
+  })
 
-    await user.click(screen.getAllByRole('button', { name: /show on map/i })[0])
-    expect(screen.getByRole('button', { name: /close area details/i })).toBeInTheDocument()
+  it('draws a real map and no longer asks walk or drive', async () => {
+    renderApp('/safety')
+
+    // A live map, not a placeholder: the slot art stays for the older list below.
+    expect(await screen.findByTestId('safety-map')).toBeInTheDocument()
+
+    // Routes are compared on foot; the mode is pinned, not asked for.
+    expect(screen.queryByRole('radio', { name: /walk/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: /drive/i })).not.toBeInTheDocument()
+  })
+
+  it('says nothing was reported rather than "no clearly better route"', async () => {
+    const { RouteComparisonCard } = await import('../features/safety/components/RouteComparisonCard')
+    const { I18nextProvider } = await import('react-i18next')
+    const { render } = await import('@testing-library/react')
+    const { default: i18n } = await import('../i18n')
+
+    const route = (id: string, seconds: number, passed: number) => ({
+      id, role: 'alternative' as const, durationSeconds: seconds, distanceMeters: 1000,
+      geometry: [{ latitude: 6.9, longitude: 79.8 }, { latitude: 6.91, longitude: 79.81 }],
+      exposureScore: 0, hotspotsPassed: passed, incidentCategories: [], safetyConcerns: [],
+      extraDurationSeconds: 0,
+    })
+    const base = {
+      recommendedRouteId: null, lowestExposureRouteId: 'r1', clearRouteId: null,
+      originInReportedArea: false, destinationInReportedArea: false,
+      evidenceLevel: 'moderate' as const, travelMode: 'walking' as const,
+      usesStreetNetwork: true, pedestrianProfileAvailable: false,
+    }
+
+    // Nothing reported on any route: there is nothing to detour around.
+    const clear = render(
+      <I18nextProvider i18n={i18n}>
+        <RouteComparisonCard
+          comparison={{ ...base, routes: [route('r1', 3240, 0), route('r2', 5280, 0)] }}
+          selectedRouteId="r1"
+          onSelectRoute={() => {}}
+        />
+      </I18nextProvider>,
+    )
+    expect(screen.getByText(/no reported areas on these routes/i)).toBeInTheDocument()
+    expect(screen.queryByText(/no clearly better route/i)).not.toBeInTheDocument()
+    // "Fewest of these" says nothing when every route passes none.
+    expect(screen.queryByText(/fewest reported areas/i)).not.toBeInTheDocument()
+    clear.unmount()
+
+    // Areas exist but no detour was worth it: the original wording still applies.
+    render(
+      <I18nextProvider i18n={i18n}>
+        <RouteComparisonCard
+          comparison={{ ...base, routes: [route('r1', 3240, 2), route('r2', 5280, 1)] }}
+          selectedRouteId="r1"
+          onSelectRoute={() => {}}
+        />
+      </I18nextProvider>,
+    )
+    // No clear route was found, so say that rather than blaming the detour cost.
+    expect(screen.getByText(/no route avoids every reported area/i)).toBeInTheDocument()
+    expect(screen.getByText(/a way around them was looked for/i)).toBeInTheDocument()
+    expect(screen.getByText(/fewest reported areas/i)).toBeInTheDocument()
+  })
+
+  it('offers the longer route that avoids every reported area', async () => {
+    const { RouteComparisonCard } = await import('../features/safety/components/RouteComparisonCard')
+    const { I18nextProvider } = await import('react-i18next')
+    const { render } = await import('@testing-library/react')
+    const { default: i18n } = await import('../i18n')
+
+    // The shape the backend actually returns when its clear-route search
+    // succeeds: a detour that enters no reported area, offered however long.
+    const route = (id: string, role: string, seconds: number, extra: number, passed: number) => ({
+      id, role, durationSeconds: seconds, distanceMeters: 1000,
+      geometry: [{ latitude: 6.9, longitude: 79.8 }, { latitude: 6.91, longitude: 79.81 }],
+      exposureScore: passed * 10, hotspotsPassed: passed,
+      incidentCategories: [], safetyConcerns: [], extraDurationSeconds: extra,
+    })
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <RouteComparisonCard
+          comparison={{
+            routes: [
+              route('route-1', 'fastest', 2760, 0, 2),
+              route('route-2', 'lower-exposure', 3060, 300, 1),
+              route('route-3', 'avoids-all', 3720, 960, 0),
+            ],
+            recommendedRouteId: 'route-2',
+            lowestExposureRouteId: 'route-3',
+            clearRouteId: 'route-3',
+            originInReportedArea: false, destinationInReportedArea: false,
+            evidenceLevel: 'moderate' as const, travelMode: 'walking' as const,
+            usesStreetNetwork: true, pedestrianProfileAvailable: false,
+          } as never}
+          selectedRouteId="route-2"
+          onSelectRoute={() => {}}
+        />
+      </I18nextProvider>,
+    )
+
+    // Named by its role, badged as clear, and honest about the extra time.
+    expect(screen.getByText('Avoids all reported areas')).toBeInTheDocument()
+    expect(screen.getByText('Avoids everything reported')).toBeInTheDocument()
+    expect(screen.getByText(/16 min longer/)).toBeInTheDocument()
+    expect(screen.getByText(/enters no reported area/i)).toBeInTheDocument()
+    expect(screen.getByText('Passes no reported areas')).toBeInTheDocument()
+    // The recommendation is still the shorter detour; both are offered.
+    expect(screen.getByText('Suggested')).toBeInTheDocument()
+  })
+
+  it('names an area when the backend could name it', async () => {
+    renderApp('/safety')
+    // The mock fixtures carry no area_name, so the count must still lead and
+    // nothing may render as "null" or "undefined".
+    const areas = await screen.findAllByRole('button', { name: /reports? in the last \d+ days/i })
+    expect(areas.length).toBeGreaterThan(0)
+    expect(document.body.textContent).not.toMatch(/\bnull\b|\bundefined\b/)
+  })
+
+  it('renders the journey planner in Sinhala and Tamil, not an English fallback', async () => {
+    const { default: i18n } = await import('../i18n')
+    for (const [language, marker] of [['si', 'ඇවිදීමේ ගමනක් සැලසුම් කරන්න'], ['ta', 'பயணத்தைத் திட்டமிடுங்கள்']] as const) {
+      await i18n.changeLanguage(language)
+      const { unmount } = renderApp('/safety')
+      const planner = await screen.findByTestId('planner-card')
+      expect(within(planner).getByRole('heading', { name: marker })).toBeInTheDocument()
+      // The English strings must not leak through as a fallback.
+      expect(within(planner).queryByText('Plan a journey')).not.toBeInTheDocument()
+      unmount()
+    }
+    await i18n.changeLanguage('en')
+  })
+
+  it('offers the reported-area vocabulary the backend actually serves', async () => {
+    const user = userEvent.setup()
+    renderApp('/safety')
+
+    // The evidence notice never lets an empty map read as "safe".
+    const evidence = await screen.findByTestId('evidence-card')
+    expect(within(evidence).getByText(/reported, not where harassment actually occurs/i)).toBeInTheDocument()
+
+    // Choosing an area expands its detail in place, rather than repeating the
+    // heading in a second card below.
+    const areas = screen.getAllByRole('button', { expanded: false })
+    const area = areas.find((button) => /reports? in the last \d+ days/i.test(button.textContent ?? ''))
+    expect(area).toBeDefined()
+    expect(screen.queryByText(/most recent report/i)).not.toBeInTheDocument()
+
+    await user.click(area as HTMLElement)
+    expect(area).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText(/most recent report/i)).toBeInTheDocument()
+    // The caveat is on every area, expanded or not.
+    expect(screen.getAllByText(/never shows the exact place/i).length).toBeGreaterThan(0)
+    // One heading per area, not two: the old layout repeated it in a card below.
+    expect(screen.queryAllByText(/^About this area$/).length).toBeLessThanOrEqual(
+      screen.queryAllByRole('button', { expanded: true }).length +
+        screen.queryAllByRole('button', { expanded: false }).length,
+    )
   })
 })

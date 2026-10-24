@@ -172,7 +172,7 @@ describe('session lifecycle and redirects', () => {
     renderApp('/login', { state: { from: '/safety' } })
     const user = await fillLogin()
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
-    expect(await screen.findByTestId('map-slot')).toBeInTheDocument()
+    expect(await screen.findByTestId('safety-map')).toBeInTheDocument()
   })
 
   it('rejects an external return destination after login', async () => {
