@@ -1,22 +1,14 @@
 import { ChevronDown, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import type { EvidenceLevel, SafetyMapHotspot } from '../../../services/contracts'
-import { confidenceLabelKey, hotspotIssues } from '../constants/issueTypes'
+import type { SafetyMapHotspot } from '../../../services/contracts'
+import { confidenceLabelKey, hotspotColor, hotspotIssues, intensityBand } from '../constants/issueTypes'
 
 interface SafetyAreaListProps {
   hotspots: SafetyMapHotspot[]
   windowDays: number
   selectedId: string | null
   onSelect: (hotspot: SafetyMapHotspot) => void
-}
-
-// The same navy ramp the legend uses. "insufficient" is drawn empty and dashed
-// so a thinly-reported area is never read as a reassuring colour.
-const evidenceBand: Record<EvidenceLevel, string> = {
-  insufficient: 'bg-activity-insufficient border-r-2 border-dashed border-ink-muted',
-  limited: 'bg-activity-low',
-  moderate: 'bg-activity-moderate',
 }
 
 // On mobile an area is chosen by tapping the map. Here it can be chosen from the
@@ -37,7 +29,7 @@ export function SafetyAreaList({ hotspots, windowDays, selectedId, onSelect }: S
                 selected ? 'border-2 border-navy' : 'border border-line/70'
               }`}
             >
-              <span aria-hidden className={`absolute inset-y-0 left-0 w-2.5 ${evidenceBand[hotspot.evidenceLevel]}`} />
+              <span aria-hidden className="absolute inset-y-0 left-0 w-2.5" style={{ backgroundColor: hotspotColor(hotspot.intensity) }} />
 
               <button
                 type="button"
@@ -53,6 +45,7 @@ export function SafetyAreaList({ hotspots, windowDays, selectedId, onSelect }: S
                     {t('map.reportCount', { count: hotspot.reportCount, days: windowDays })}
                   </span>
                   <span className="text-sm text-ink-muted">{t(`evidence.${hotspot.evidenceLevel}`)}</span>
+                  <span className="text-sm font-semibold">{t('weightedIntensity.area', { band: t(`weightedIntensity.${intensityBand(hotspot.intensity)}`) })}</span>
                 </span>
                 <ChevronDown
                   aria-hidden

@@ -99,18 +99,27 @@ export function confidenceLabelKey(meanConfidence: number) {
   return 'map.confidence.low'
 }
 
-// Map drawing needs real colour values rather than utility classes. The ramp is
-// the navy activity scale from the design system, never red or green: a pale
-// area must not read as "safe" and a dark one must not read as "dangerous".
 const ACTIVITY_NAVY = '#133148'
 
-// Intensity drives opacity only. Colour alone never carries meaning, so every
-// area is also labelled with its report count and issue types.
+// The backend combines severity, confidence, recency and incident count, then
+// normalises against the highest area in this query. This is not raw severity.
+export const intensityBands = ['lower', 'moderate', 'higher', 'highest'] as const
+export type IntensityBand = (typeof intensityBands)[number]
+const intensityColors: Record<IntensityBand, string> = {
+  lower: '#fdba74', moderate: '#f97316', higher: '#dc2626', highest: '#991b1b',
+}
+
+export function intensityBand(intensity: number): IntensityBand {
+  const value = Number.isFinite(intensity) ? Math.min(1, Math.max(0, intensity)) : 0
+  return intensityBands[Math.min(3, Math.floor(value * 4))]
+}
+
+export function hotspotColor(intensity: number) {
+  return intensityColors[intensityBand(intensity)]
+}
+
 export function hotspotFill(intensity: number) {
-  const alpha = Math.round(40 + Math.min(1, Math.max(0, intensity)) * 70)
-    .toString(16)
-    .padStart(2, '0')
-  return `${ACTIVITY_NAVY}${alpha}`
+  return `${hotspotColor(intensity)}66`
 }
 
 export const mapColors = {

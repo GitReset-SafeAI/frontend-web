@@ -176,5 +176,15 @@
     "sharedNoFixYet": "Waiting for the first position.",
     "sharedAccuracy": "Position accurate to about {{metres}} m.",
     "sharedCaveat": "You are seeing where someone chose to share their walk. It is not a safety guarantee, and it stops when they end the journey."
+  },
+  "weightedIntensity": {
+    "title": "Severity-weighted intensity",
+    "lower": "Lower",
+    "moderate": "Moderate",
+    "higher": "Higher",
+    "highest": "Highest",
+    "area": "Severity-weighted intensity: {{band}}",
+    "summary": "{{reports}} reported incidents across {{areas}} areas · last {{days}} days",
+    "explanation": "Darker shades show higher combined intensity, using AI severity (0–10), incident count, confidence and recency. Shades are relative to the areas in the current query and can change as you pan or filter. They are not raw severity or a safety rating."
   }
 }

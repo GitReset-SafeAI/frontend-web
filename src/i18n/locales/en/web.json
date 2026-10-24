@@ -60,7 +60,8 @@
   },
   "footer": {
     "disclaimer": "SafeStep cannot guarantee that any place or route is safe. It shows reported incidents and estimates only.",
-    "demo": "This is a demo: AI results and map data are synthetic samples."
+    "demo": "This is a demo: AI results and map data are synthetic samples.",
+    "backendMap": "Map areas come from the backend. Other features may still use demo data."
   },
   "sos": {
     "desktopHint": "On a computer? A call can only start on a phone, so dial {{number}} from your phone."

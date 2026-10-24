@@ -7,6 +7,6 @@ import type { RouteComparisonRequest } from '../../../services/contracts'
 export function useRouteComparison() {
   return useMutation({
     mutationFn: (request: RouteComparisonRequest) => services.safetyMap.compareRoutes(request),
-    networkMode: env.dataMode === 'mock' ? 'always' : 'online',
+    networkMode: env.safetyMapMode === 'mock' ? 'always' : 'online',
   })
 }

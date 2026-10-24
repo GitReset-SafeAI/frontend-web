@@ -17,7 +17,7 @@ export function SafetyPage() {
       <div className="flex flex-col gap-4">
         <h1 className="display-lg">{t('mapTitle')}</h1>
 
-        {env.dataMode === 'mock' ? (
+        {env.safetyMapMode === 'mock' ? (
           <p className="m-0 inline-flex w-fit items-center gap-2 rounded-full bg-[#fff3d6] px-4 py-1.5 text-sm font-semibold text-warning">
             <FlaskConical className="size-[18px]" aria-hidden />
             {tc('sampleData')}

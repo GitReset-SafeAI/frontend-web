@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 
 import type { BoundingBox, Coordinate, Route, SafetyMapHotspot } from '../../../services/contracts'
-import { hotspotFill, mapColors } from '../constants/issueTypes'
+import { hotspotColor, hotspotFill, mapColors } from '../constants/issueTypes'
 
 interface SafetyMapCanvasProps {
   hotspots: SafetyMapHotspot[]
@@ -176,7 +176,7 @@ export function SafetyMapCanvas({
               pathOptions={{
                 fillColor: hotspotFill(hotspot.intensity),
                 fillOpacity: 1,
-                color: mapColors.area,
+                color: hotspotColor(hotspot.intensity),
                 weight: thin ? 1.5 : 2,
                 dashArray: thin ? '5 5' : undefined,
                 opacity: thin ? 0.55 : 0.85,
