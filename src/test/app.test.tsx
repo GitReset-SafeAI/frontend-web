@@ -196,7 +196,18 @@ describe('safety map', () => {
     // Clamped around the centre, so the map keeps showing where you are looking.
     expect((wide.southWest.latitude + wide.northEast.latitude) / 2).toBeCloseTo(7.5)
 
-    // A normal city viewport is passed through untouched.
+    // Zooming in must not shrink what gets clustered: areas are built from the
+    // incidents inside the requested box, so a tight box publishes fewer areas
+    // and they would appear to vanish as you zoom.
+    const { MIN_BBOX_DEGREES } = await import('../features/safety/utils/clampBounds')
+    const street = clampBounds({
+      southWest: { latitude: 6.92, longitude: 79.85 },
+      northEast: { latitude: 6.94, longitude: 79.88 },
+    })
+    expect(street.northEast.latitude - street.southWest.latitude).toBeCloseTo(MIN_BBOX_DEGREES)
+    expect((street.southWest.latitude + street.northEast.latitude) / 2).toBeCloseTo(6.93)
+
+    // A city-sized viewport is already within both limits and passes through.
     const city = { southWest: { latitude: 6.78, longitude: 79.8 }, northEast: { latitude: 7.0, longitude: 79.95 } }
     expect(clampBounds(city)).toEqual(city)
   })

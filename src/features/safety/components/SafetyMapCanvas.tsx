@@ -1,7 +1,7 @@
 import 'leaflet/dist/leaflet.css'
 
 import L from 'leaflet'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 
@@ -23,6 +23,9 @@ interface SafetyMapCanvasProps {
   onRouteSelect: (routeId: string) => void
   onBoundsChange: (bounds: BoundingBox) => void
 }
+
+// How long after a programmatic fit the map's own events are ignored.
+const PROGRAMMATIC_SETTLE_MS = 600
 
 const toLatLng = ({ latitude, longitude }: Coordinate): [number, number] => [latitude, longitude]
 
@@ -52,22 +55,60 @@ const destinationPin = L.divIcon({
 // Areas shown follow the map rather than a region fixed in the source. Panning
 // is cheap: the query key rounds bounds to two decimals, so a small nudge
 // reuses the cached result instead of asking the server again.
-function ViewportReporter({ onBoundsChange }: { onBoundsChange: (bounds: BoundingBox) => void }) {
-  const map = useMapEvents({
-    moveend: () => { onBoundsChange(toBoundingBox(map.getBounds())) },
-    zoomend: () => { onBoundsChange(toBoundingBox(map.getBounds())) },
-  })
+function ViewportReporter({
+  onBoundsChange,
+  programmatic,
+}: {
+  onBoundsChange: (bounds: BoundingBox) => void
+  programmatic: { current: number }
+}) {
+  // Framing the data is not the viewer panning, and one fitBounds emits both
+  // zoomend and moveend. A flag consumed by the first would let the second
+  // through, so the fit is suppressed for a short window instead.
+  const report = () => {
+    if (Date.now() - programmatic.current < PROGRAMMATIC_SETTLE_MS) return
+    onBoundsChange(toBoundingBox(map.getBounds()))
+  }
+  const map = useMapEvents({ moveend: report, zoomend: report })
+  return null
+}
+
+// Frame the reported areas when they first arrive, so the map opens on the
+// data rather than on a fixed centre that may leave every area off-screen.
+// Once only: re-fitting on every refetch would fight a viewer who has panned,
+// and panning refetches.
+function FitToAreas({
+  hotspots,
+  enabled,
+  programmatic,
+}: {
+  hotspots: SafetyMapHotspot[]
+  enabled: boolean
+  programmatic: { current: number }
+}) {
+  const map = useMap()
+  const fitted = useRef(false)
+  useEffect(() => {
+    if (fitted.current || !enabled || hotspots.length === 0) return
+    fitted.current = true
+    programmatic.current = Date.now()
+    map.fitBounds(L.latLngBounds(hotspots.map((area) => toLatLng(area.center))), {
+      padding: [64, 64],
+      maxZoom: 15,
+    })
+  }, [map, hotspots, enabled, programmatic])
   return null
 }
 
 // Frame the journey once routes arrive, the way a map app zooms to fit.
-function FitToRoutes({ routes }: { routes: Route[] }) {
+function FitToRoutes({ routes, programmatic }: { routes: Route[]; programmatic: { current: number } }) {
   const map = useMap()
   useEffect(() => {
     const points = routes.flatMap((route) => route.geometry)
     if (points.length < 2) return
+    programmatic.current = Date.now()
     map.fitBounds(L.latLngBounds(points.map(toLatLng)), { padding: [56, 56] })
-  }, [map, routes])
+  }, [map, routes, programmatic])
   return null
 }
 
@@ -87,6 +128,8 @@ export function SafetyMapCanvas({
   onBoundsChange,
 }: SafetyMapCanvasProps) {
   const { t } = useTranslation('safety')
+  // Shared between the fitters and the reporter, so a fit never reads as a pan.
+  const programmatic = useRef(0)
   const center: [number, number] = [
     (initialBounds.southWest.latitude + initialBounds.northEast.latitude) / 2,
     (initialBounds.southWest.longitude + initialBounds.northEast.longitude) / 2,
@@ -115,8 +158,9 @@ export function SafetyMapCanvas({
         />
         {/* Bottom right, clear of the route labels that sit mid-map. */}
         <ZoomControl position="bottomright" />
-        <ViewportReporter onBoundsChange={onBoundsChange} />
-        <FitToRoutes routes={routes} />
+        <ViewportReporter onBoundsChange={onBoundsChange} programmatic={programmatic} />
+        <FitToAreas hotspots={hotspots} enabled={routes.length === 0} programmatic={programmatic} />
+        <FitToRoutes routes={routes} programmatic={programmatic} />
 
         {/* One shaded circle per aggregated area. Individual reports are never
             plotted, and the radius is the published aggregation radius. An

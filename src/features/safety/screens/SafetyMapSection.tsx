@@ -32,6 +32,13 @@ const initialBounds: BoundingBox = {
   northEast: { latitude: 7.0, longitude: 79.95 },
 }
 
+// Two viewports that round to the same key cannot produce different areas.
+function boundsKey({ southWest, northEast }: BoundingBox) {
+  return [
+    southWest.latitude, southWest.longitude, northEast.latitude, northEast.longitude,
+  ].map((value) => value.toFixed(2)).join(',')
+}
+
 // Routes are compared on foot. The backend still takes a travel mode, so the
 // value is pinned here rather than asked for.
 const TRAVEL_MODE = 'walking' as const
@@ -46,6 +53,14 @@ export function SafetyMapSection() {
   const [destination, setDestination] = useState<PlannerPoint | null>(null)
   const [selectedHotspot, setSelectedHotspot] = useState<SafetyMapHotspot | null>(null)
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null)
+
+  // The query key rounds bounds to two decimals, so anything finer than that
+  // cannot change the result. Comparing on the same rounding keeps a nudge of
+  // the map from refetching and remounting everything built from the data.
+  const handleBoundsChange = useCallback((next: BoundingBox) => {
+    const clamped = clampBounds(next)
+    setBounds((current) => (boundsKey(current) === boundsKey(clamped) ? current : clamped))
+  }, [])
 
   const request = useMemo<HotspotsRequest>(() => ({ bounds, timePeriod }), [bounds, timePeriod])
   const hotspotsQuery = useSafetyMapHotspots(request)
@@ -145,7 +160,7 @@ export function SafetyMapSection() {
         initialBounds={initialBounds}
         onHotspotSelect={setSelectedHotspot}
         onRouteSelect={setSelectedRouteId}
-        onBoundsChange={(next) => { setBounds(clampBounds(next)) }}
+        onBoundsChange={handleBoundsChange}
       />
 
       {comparison.isError ? <InfoNote tone="error" text={t('routes.loadFailed')} /> : null}
