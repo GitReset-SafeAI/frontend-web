@@ -63,14 +63,8 @@ export function AccountPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
       <div className="flex flex-col gap-10">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h1 className="display-lg">{t('account.hello', { name: user.name })}</h1>
-            <p className="m-0 break-all text-ink-muted">{user.email}</p>
-          </div>
-          <Button variant="secondary" loading={loggingOut} icon={<LogOut className="size-5" aria-hidden />} onClick={() => { void doLogOut() }}>
-            {loggingOut ? t('account.loggingOut') : t('account.logout')}
-          </Button>
+        <header>
+          <h1 className="display-lg">{t('account.hello', { name: user.name })}</h1>
         </header>
 
         <section aria-labelledby="contacts-heading" className="flex flex-col gap-5">
@@ -122,6 +116,14 @@ export function AccountPage() {
             <p className="m-0 text-sm text-ink-muted">{t('contacts.demoStorage')}</p>
           </div>
         </section>
+
+        {/* Logging out is rare and easy to regret, so it sits at the end, apart from the contacts. */}
+        <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
+          <p className="m-0 min-w-0 break-all text-ink-muted">{t('account.signedInAs', { email: user.email })}</p>
+          <Button variant="secondary" loading={loggingOut} icon={<LogOut className="size-5" aria-hidden />} onClick={() => { void doLogOut() }}>
+            {loggingOut ? t('account.loggingOut') : t('account.logout')}
+          </Button>
+        </footer>
       </div>
 
       <ContactFormDialog

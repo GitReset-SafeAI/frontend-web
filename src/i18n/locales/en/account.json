@@ -45,7 +45,8 @@
     "hello": "Hello, {{name}}",
     "logout": "Log out",
     "loggingOut": "Logging out…",
-    "loading": "Loading your account…"
+    "loading": "Loading your account…",
+    "signedInAs": "Signed in as {{email}}"
   },
   "contacts": {
     "title": "Emergency contacts",
