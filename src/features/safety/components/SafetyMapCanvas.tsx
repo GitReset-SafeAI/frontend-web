@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 
 import type { BoundingBox, Coordinate, Route, SafetyMapHotspot } from '../../../services/contracts'
-import { hotspotFill, mapColors } from '../constants/issueTypes'
+import { hotspotColor, hotspotFill, mapColors } from '../constants/issueTypes'
 
 interface SafetyMapCanvasProps {
   hotspots: SafetyMapHotspot[]
@@ -157,7 +157,7 @@ export function SafetyMapCanvas({
       data-testid="safety-map"
       role="application"
       aria-label={t('mapA11y')}
-      className="safety-map h-[26rem] overflow-hidden rounded-lg border border-line/70 shadow-lift lg:h-[34rem]"
+      className="safety-map isolate h-[26rem] overflow-hidden rounded-lg border border-line/70 shadow-lift lg:h-[34rem]"
     >
       <MapContainer center={center} zoom={13} scrollWheelZoom zoomControl={false} className="size-full">
         {/* OpenStreetMap's own tiles: no API key, and the same data the
@@ -190,7 +190,7 @@ export function SafetyMapCanvas({
               pathOptions={{
                 fillColor: hotspotFill(hotspot.intensity),
                 fillOpacity: 1,
-                color: mapColors.area,
+                color: hotspotColor(hotspot.intensity),
                 weight: thin ? 1.5 : 2,
                 dashArray: thin ? '5 5' : undefined,
                 opacity: thin ? 0.55 : 0.85,

@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import { env } from '../../config/env'
 import type { AppServices, HotspotsRequest } from '../contracts'
 import { journeyShareSchema, sharedJourneySchema } from '../contracts/journeys'
 import { placeSuggestionSchema } from '../contracts/places'
@@ -8,7 +7,8 @@ import { hotspotsResultSchema, routeComparisonResultSchema } from '../contracts/
 import { ApiError } from './ApiError'
 import { createApiClient } from './client'
 
-const client = createApiClient(env.apiBaseUrl)
+// Use the frontend's /api proxy to avoid requiring backend CORS changes.
+const client = createApiClient('/')
 
 // No endpoint or authentication contract exists yet. Do not guess either.
 const notAgreed = (what: string) => async (): Promise<never> => {

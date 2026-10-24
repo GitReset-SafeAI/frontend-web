@@ -8,6 +8,8 @@ export function selectServices(mode: AppEnvironment['dataMode'], authMode: AppEn
   const data = mode === 'mock' ? mockServices : apiServices
   return {
     ...data,
+    safetyMap: env.safetyMapMode === 'api' ? apiServices.safetyMap : mockServices.safetyMap,
+    places: env.safetyMapMode === 'api' ? apiServices.places : mockServices.places,
     auth: authMode === 'demo' ? mockServices.auth : supabaseAuth,
     // Real users must never read or write contacts under an old demo session.
     // These fail explicitly until contact persistence/authorization is implemented.

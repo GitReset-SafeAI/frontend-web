@@ -25,6 +25,7 @@ import { useRouteComparison } from '../hooks/useRouteComparison'
 import { useSafetyMapHotspots } from '../hooks/useSafetyMapHotspots'
 import { clampBounds } from '../utils/clampBounds'
 import { currentTimePeriod } from '../utils/currentTimePeriod'
+import { intensityBand } from '../constants/issueTypes'
 
 // Where the map opens, not where the data lives: panning replaces these bounds
 // with whatever is on screen. Not a user's or an incident's location.
@@ -46,9 +47,8 @@ const TRAVEL_MODE = 'walking' as const
 
 export function SafetyMapSection() {
   const { t } = useTranslation('safety')
-  // Defaults to the period you are actually travelling in; every other
-  // period, and "any time", stay one tap away.
-  const [timePeriod, setTimePeriod] = useState<TimePeriodFilter>(() => currentTimePeriod())
+  // Show all recorded periods initially so the current clock does not hide stored reports.
+  const [timePeriod, setTimePeriod] = useState<TimePeriodFilter>('all')
   const [bounds, setBounds] = useState<BoundingBox>(initialBounds)
   const [origin, setOrigin] = useState<PlannerPoint | null>(null)
   const [destination, setDestination] = useState<PlannerPoint | null>(null)
@@ -158,6 +158,12 @@ export function SafetyMapSection() {
       {location.status === 'denied' ? <InfoNote text={t('planner.locationDenied')} /> : null}
       {location.status === 'unavailable' ? <InfoNote text={t('planner.locationUnavailable')} /> : null}
 
+      {hotspotsQuery.data ? (
+        <p role="status" className="m-0 text-lg font-semibold text-navy">
+          {t('weightedIntensity.summary', { reports: hotspots.reduce((sum, area) => sum + area.reportCount, 0), areas: hotspots.length, days: windowDays })}
+        </p>
+      ) : null}
+
       <SafetyMapCanvas
         hotspots={hotspots}
         routes={routes}
@@ -166,11 +172,11 @@ export function SafetyMapSection() {
         destination={destination?.coordinate ?? null}
         originLabel={journey.position ? t('journey.youAreHere') : origin?.label ?? t('planner.start')}
         destinationLabel={destination?.label ?? t('planner.end')}
-        hotspotLabel={(hotspot) =>
-          hotspot.areaName
+        hotspotLabel={(hotspot) => [hotspot.areaName
             ? `${hotspot.areaName} · ${t('map.reportCount', { count: hotspot.reportCount, days: windowDays })}`
-            : t('map.reportCount', { count: hotspot.reportCount, days: windowDays })
-        }
+            : t('map.reportCount', { count: hotspot.reportCount, days: windowDays }),
+          t('weightedIntensity.area', { band: t(`weightedIntensity.${intensityBand(hotspot.intensity)}`) }),
+        ].join(' · ')}
         routeLabel={(route) =>
           `${t(`routes.role.${route.role}`)} · ${t('routes.hotspotsPassed', { count: route.hotspotsPassed })}`
         }

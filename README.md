@@ -1,5 +1,33 @@
 # SafeStep — web
 
+## Database incident map
+
+Journey place search follows `VITE_SAFETY_MAP_MODE` as well: a live map searches the backend's
+`/api/v1/safety-map/places` endpoint even while accounts or reports use demo mode. If live geocoding
+fails, the search identifies the outage, offers a retry, and lists matching saved public landmarks
+from the existing local directory. This limited directory is not a full address search. Selecting
+a suggestion sets its coordinates; editing a selected name clears those coordinates until another
+suggestion is chosen. Arrow keys and Enter select a result; Escape or leaving the field dismisses it.
+
+The map uses `VITE_SAFETY_MAP_MODE=api` by default, independently of the other features' demo mode.
+Vite proxies `/api` to `VITE_API_BASE_URL` (default `http://127.0.0.1:8001`) in development and preview.
+Restart Vite after changing these values. Production hosting must supply the same `/api` reverse proxy.
+
+The unchanged backend reads `map_eligible_incidents`, joining `public.reports` coordinates to completed
+`incident_ai_analyses` records by `report_id`. The backend's Supabase URL and service-role credential
+must be configured there; no privileged database credentials belong in the frontend. If those backend
+settings are absent, the existing backend can serve synthetic data instead. The frontend does not fall
+back to mock incidents when a live request fails.
+
+Each published area displays its report count. Orange through dark red shows the backend's
+**severity-weighted intensity**: severity (0–10), count, confidence and recency combined and normalised
+against the strongest area in the query. This is not average severity. The legend and textual labels
+state that scores can change as the viewport or filters change. Exact report locations remain private;
+the backend publishes rounded area centres and requires at least three nearby reports per area.
+
+The initial view includes all time periods in the backend's default 30-day window. Map data refreshes
+every minute while the page is active. Set `VITE_SAFETY_MAP_MODE=mock` for an explicitly labelled offline demo.
+
 Responsive web app for **SafeStep**, an AI-assisted personal-safety reporting and location-based
 safety-awareness platform for girls and women who travel alone in Sri Lanka. It is the browser
 counterpart of the Expo mobile app (`GitReset-Frontend`) and shares its design tokens, service

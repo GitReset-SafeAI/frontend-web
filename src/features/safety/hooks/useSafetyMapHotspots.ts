@@ -10,8 +10,9 @@ export function useSafetyMapHotspots(request: HotspotsRequest) {
     queryKey: queryKeys.safetyMapHotspots(request),
     queryFn: () => services.safetyMap.getHotspots(request),
     // Clustering is expensive server-side; a short pan should not refetch.
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchInterval: env.safetyMapMode === 'api' ? 60 * 1000 : false,
     // Mock data is local, so demos also work offline.
-    networkMode: env.dataMode === 'mock' ? 'always' : 'online',
+    networkMode: env.safetyMapMode === 'mock' ? 'always' : 'online',
   })
 }

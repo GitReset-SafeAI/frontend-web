@@ -45,6 +45,7 @@ const hotspotWireSchema = z.object({
   // Aggregation floor. Precise incident coordinates are never published.
   radius_m: z.number().min(150),
   report_count: z.number().int().min(3),
+  // Relative combined severity/count/confidence/recency score, NOT mean severity.
   intensity: z.number().min(0).max(1),
   top_incident_categories: z.array(incidentCategorySchema).max(3),
   top_safety_concerns: z.array(safetyConcernSchema).max(3),
