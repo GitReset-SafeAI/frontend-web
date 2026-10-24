@@ -32,6 +32,7 @@ export function LoginPage() {
   const isDemo = env.authMode === 'demo'
   const mode: Mode = isDemo && params.get('mode') === 'signup' ? 'signup' : 'login'
   const from = safeReturnTo((location.state as { from?: unknown } | null)?.from)
+  const reauthenticate = (location.state as { reauthenticate?: unknown } | null)?.reauthenticate === true
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -44,7 +45,7 @@ export function LoginPage() {
   const configurationError = authError?.kind === 'configuration'
 
   // Already signed in: nothing to do here.
-  if (status === 'ready' && user && !pending) return <Navigate to={from ?? '/account'} replace />
+  if (status === 'ready' && user && !pending && !reauthenticate) return <Navigate to={from ?? '/account'} replace />
 
   const switchMode = (next: Mode) => {
     if (busy) return

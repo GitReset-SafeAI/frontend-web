@@ -2,10 +2,12 @@ import { Loader2, Mic, MicOff, RefreshCw, Square } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { env } from '../../../config/env'
 import { Button } from '../../../shared/components/Button'
 import { Dialog } from '../../../shared/components/Dialog'
 import { InfoNote } from '../../../shared/components/InfoNote'
 import { useTranscribeVoice } from '../hooks/useSubmitReport'
+import { RecordedVoiceSheet } from './RecordedVoiceSheet'
 
 type Phase = 'idle' | 'recording' | 'transcribing' | 'error'
 
@@ -25,7 +27,9 @@ function formatTime(totalSeconds: number) {
 export function VoiceInputDialog({ open, onClose, onTranscript }: VoiceInputDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} labelledBy="voice-title">
-      <VoiceSheet onClose={onClose} onTranscript={onTranscript} />
+      {env.authMode === 'supabase'
+        ? <RecordedVoiceSheet onClose={onClose} onTranscript={onTranscript} />
+        : <VoiceSheet onClose={onClose} onTranscript={onTranscript} />}
     </Dialog>
   )
 }
@@ -54,7 +58,7 @@ function VoiceSheet({ onClose, onTranscript }: Omit<VoiceInputDialogProps, 'open
   const stop = async () => {
     setPhase('transcribing')
     try {
-      const { text } = await transcribe.mutateAsync()
+      const { text } = await transcribe.mutateAsync(undefined)
       if (mounted.current) onTranscript(text)
     } catch {
       if (mounted.current) setPhase('error')

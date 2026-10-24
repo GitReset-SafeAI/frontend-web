@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate } from 'react-router-dom'
 
 import { reportSubmissionSchema } from '../../../services/contracts/incident'
-import { Button } from '../../../shared/components/Button'
+import { Button, ButtonLink } from '../../../shared/components/Button'
+import { ApiError } from '../../../services/api/ApiError'
 import { Card } from '../../../shared/components/Card'
 import { InfoNote } from '../../../shared/components/InfoNote'
 import { StepLayout } from '../../../shared/layouts/StepLayout'
@@ -34,6 +35,15 @@ export function ReportReviewScreen() {
   const navigate = useNavigate()
   const { draft, receipt, setReceipt } = useReportDraft()
   const submit = useSubmitReport()
+  const errorKind = submit.error instanceof ApiError ? submit.error.kind : 'unknown'
+  const errorKeys: Partial<Record<ApiError['kind'], string>> = {
+    unauthorized: 'authError', forbidden: 'forbidden', validation: 'validationError',
+    'rate-limit': 'rateLimit', network: 'networkError', configuration: 'configurationError',
+    confirmation: 'confirmationError',
+  }
+  const errorText = errorKeys[errorKind]
+    ? t(`review.${errorKeys[errorKind]}`)
+    : `${t('review.errorTitle')}. ${t('review.errorBody')}`
   const parsed = reportSubmissionSchema.safeParse(toSubmission(draft))
   const notProvided = t('review.notProvided')
 
@@ -41,7 +51,8 @@ export function ReportReviewScreen() {
   if (receipt) return <Navigate to="/report/submitted" replace />
 
   const whenWhere = [
-    draft.occurredWhen ? t(`when.options.${draft.occurredWhen}`) : undefined,
+    draft.reportedTime ? `${t('when.whenLabel')}: ${t(`when.options.${draft.reportedTime}`)}` : undefined,
+    draft.occurredAt ? `${t('when.occurredAt')}: ${new Date(draft.occurredAt).toLocaleString()}` : undefined,
     draft.location
       ? (draft.location.source === 'device' || !draft.location.districtId
         ? t('when.selectedCurrent')
@@ -51,12 +62,11 @@ export function ReportReviewScreen() {
 
   const extra = [
     draft.lighting ? `${t('details.lighting')}: ${t(`details.lightingOptions.${draft.lighting}`)}` : undefined,
-    draft.crowd ? `${t('details.crowd')} ${t(`details.crowdOptions.${draft.crowd}`)}` : undefined,
-    draft.othersNearby ? `${t('details.others')} ${t(`details.othersOptions.${draft.othersNearby}`)}` : undefined,
+    draft.currentSafetyStatus ? `${t('details.currentSafety')}: ${t(`details.currentSafetyOptions.${draft.currentSafetyStatus}`)}` : undefined,
   ].filter((line): line is string => Boolean(line))
 
   const onSubmit = () => {
-    if (!parsed.success) return
+    if (!parsed.success || submit.isPending || (submit.isError && errorKind === 'confirmation')) return
     submit.mutate(parsed.data, {
       onSuccess: (result) => {
         setReceipt(result)
@@ -77,19 +87,22 @@ export function ReportReviewScreen() {
           <Button variant="secondary" disabled={submit.isPending} onClick={() => { void navigate('/report/details') }}>
             {tc('back')}
           </Button>
-          <Button loading={submit.isPending} disabled={!parsed.success} onClick={onSubmit}>
+          <Button loading={submit.isPending} disabled={!parsed.success || (submit.isError && errorKind === 'confirmation')} onClick={onSubmit}>
             {t('review.submit')}
           </Button>
         </>
       )}
     >
       {!parsed.success ? <InfoNote tone="error" text={t('review.invalid')} /> : null}
-      {submit.isError ? <InfoNote tone="error" text={`${t('review.errorTitle')}. ${t('review.errorBody')}`} /> : null}
+      {submit.isError ? <InfoNote tone="error" text={errorText} /> : null}
+      {submit.isError && errorKind === 'unauthorized' ? (
+        <ButtonLink to="/login" state={{ from: '/report/review', reauthenticate: true }} variant="secondary">{t('review.loginAgain')}</ButtonLink>
+      ) : null}
       {submit.isPending ? (
-        <div role="status"><InfoNote icon={Timer} text={t('review.submitting')} /></div>
+        <div role="status"><InfoNote icon={Timer} text={t('review.saving')} /></div>
       ) : null}
 
-      <SummarySection title={t('review.what')} editLabel={tc('edit')} onEdit={() => { void navigate('/report') }} lines={[draft.description.trim() || notProvided]} />
+      <SummarySection title={t('review.what')} editLabel={tc('edit')} onEdit={() => { void navigate('/report') }} lines={[draft.description || notProvided]} />
       <SummarySection title={t('review.whenWhere')} editLabel={tc('edit')} onEdit={() => { void navigate('/report/when') }} lines={whenWhere.length ? whenWhere : [notProvided]} />
       <SummarySection title={t('review.extra')} editLabel={tc('edit')} onEdit={() => { void navigate('/report/details') }} lines={extra.length ? extra : [notProvided]} />
 

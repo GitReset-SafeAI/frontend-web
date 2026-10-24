@@ -11,6 +11,12 @@ export function selectServices(mode: AppEnvironment['dataMode'], authMode: AppEn
     safetyMap: env.safetyMapMode === 'api' ? apiServices.safetyMap : mockServices.safetyMap,
     places: env.safetyMapMode === 'api' ? apiServices.places : mockServices.places,
     auth: authMode === 'demo' ? mockServices.auth : supabaseAuth,
+    // Real-account creation is independent of unrelated mock-backed data features.
+    reports: {
+      ...data.reports,
+      submitReport: authMode === 'supabase' ? apiServices.reports.submitReport : data.reports.submitReport,
+      transcribeVoice: authMode === 'supabase' ? apiServices.reports.transcribeVoice : data.reports.transcribeVoice,
+    },
     // Real users must never read or write contacts under an old demo session.
     // These fail explicitly until contact persistence/authorization is implemented.
     contacts: authMode === 'demo' ? data.contacts : apiServices.contacts,

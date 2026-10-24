@@ -5,12 +5,14 @@ import { journeyShareSchema, sharedJourneySchema } from '../contracts/journeys'
 import { placeSuggestionSchema } from '../contracts/places'
 import { hotspotsResultSchema, routeComparisonResultSchema } from '../contracts/safetyMap'
 import { ApiError } from './ApiError'
+import { submitReport } from './reports'
+import { transcribeVoice } from './transcriptions'
 import { createApiClient } from './client'
 
 // Use the frontend's /api proxy to avoid requiring backend CORS changes.
 const client = createApiClient('/')
 
-// No endpoint or authentication contract exists yet. Do not guess either.
+// Report creation is connected; other data adapters still fail explicitly.
 const notAgreed = (what: string) => async (): Promise<never> => {
   throw new ApiError('not-implemented', `The backend ${what} contract has not been agreed.`)
 }
@@ -28,8 +30,8 @@ function bboxParam({ bounds }: HotspotsRequest) {
 
 export const apiServices: AppServices = {
   reports: {
-    submitReport: notAgreed('report submission'),
-    transcribeVoice: notAgreed('transcription'),
+    submitReport,
+    transcribeVoice,
   },
   auth: {
     subscribe() { return () => undefined },

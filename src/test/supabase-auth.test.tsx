@@ -35,6 +35,7 @@ vi.mock('@supabase/supabase-js', () => ({
 import { createClient } from '@supabase/supabase-js'
 import { services, selectServices } from '../services'
 import { apiServices } from '../services/api'
+import { ApiError } from '../services/api/ApiError'
 import { mockServices } from '../services/mocks'
 import { supabaseAuth } from '../services/auth/supabaseAuth'
 import { getSupabaseClient } from '../services/auth/supabaseClient'
@@ -143,6 +144,30 @@ describe('Supabase password login', () => {
 })
 
 describe('session lifecycle and redirects', () => {
+  it('preserves the report draft and permits login again after a rejected backend session, even with a cached user', async () => {
+    mock.getSession.mockResolvedValue(restored)
+    const report = vi.spyOn(services.reports, 'submitReport').mockRejectedValue(new ApiError('unauthorized', 'Mock rejected session'))
+    try {
+      renderApp('/report')
+      const user = userEvent.setup()
+      const description = 'Synthetic description retained while logging in again.'
+      await user.type(screen.getByRole('textbox', { name: /describe the incident/i }), description)
+      await user.click(screen.getByRole('button', { name: /^next$/i }))
+      await user.click(screen.getByRole('button', { name: /^skip$/i }))
+      await user.click(screen.getByRole('button', { name: /^skip$/i }))
+      await user.click(screen.getByRole('button', { name: /submit report/i }))
+      expect(await screen.findByRole('alert')).toHaveTextContent(/session is missing, expired, or was rejected/i)
+      expect(screen.getByText(description)).toBeInTheDocument()
+      await user.click(screen.getByRole('link', { name: /log in again/i }))
+      expect(await screen.findByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
+      await fillLogin()
+      await user.click(screen.getByRole('button', { name: /^log in$/i }))
+      expect(await screen.findByRole('heading', { name: /review and submit/i })).toBeInTheDocument()
+      expect(screen.getByText(description)).toBeInTheDocument()
+      expect(report).toHaveBeenCalledTimes(1)
+    } finally { report.mockRestore() }
+  })
+
   it('accepts a safe return destination after login', async () => {
     renderApp('/login', { state: { from: '/safety' } })
     const user = await fillLogin()
@@ -351,7 +376,8 @@ describe('configuration and service isolation', () => {
   it('keeps mock data independent and prevents real users from accessing demo contacts', async () => {
     await mockServices.auth.logIn({ email: 'demo@safestep.lk', password: 'anything' })
     expect((await mockServices.contacts.list()).length).toBeGreaterThan(0)
-    expect(services.reports).toBe(mockServices.reports)
+    expect(services.reports.submitReport).toBe(apiServices.reports.submitReport)
+    expect(services.reports.transcribeVoice).toBe(apiServices.reports.transcribeVoice)
     expect(services.safetyMap).toBe(mockServices.safetyMap)
     expect(services.contacts).toBe(apiServices.contacts)
     await expect(services.contacts.list()).rejects.toMatchObject({ kind: 'not-implemented' })

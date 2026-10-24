@@ -60,12 +60,12 @@ describe('landing and navigation', () => {
 })
 
 describe('report flow', () => {
-  it('blocks a too-short description and then completes the whole flow with optional steps skipped', async () => {
+  it('blocks an empty description and then completes the whole flow with optional steps skipped', async () => {
     const user = userEvent.setup()
     renderApp('/report')
 
     await user.click(screen.getByRole('button', { name: /^next$/i }))
-    expect(screen.getByRole('alert')).toHaveTextContent(/at least 10 characters/i)
+    expect(screen.getByRole('alert')).toHaveTextContent(/please describe what happened/i)
 
     await user.type(screen.getByRole('textbox', { name: /describe the incident/i }), 'A man followed me near the bus stand.')
     await user.click(screen.getByRole('button', { name: /^next$/i }))
@@ -74,12 +74,12 @@ describe('report flow', () => {
     expect(screen.getByRole('heading', { level: 1, name: /when and where/i })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^skip$/i }))
     expect(screen.getByRole('heading', { level: 1, name: /anything else/i })).toBeInTheDocument()
-    await user.click(screen.getByRole('radio', { name: /dim/i }))
-    expect(screen.getByRole('radio', { name: /dim/i })).toBeChecked()
+    await user.click(screen.getByRole('radio', { name: /partially lit/i }))
+    expect(screen.getByRole('radio', { name: /partially lit/i })).toBeChecked()
     await user.click(screen.getByRole('button', { name: /^next$/i }))
 
     expect(screen.getByRole('heading', { level: 1, name: /review and submit/i })).toBeInTheDocument()
-    expect(screen.getByText(/lighting: dim/i)).toBeInTheDocument()
+    expect(screen.getByText(/lighting: partially lit/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /submit report/i }))
 
     await waitFor(() => { expect(screen.getByRole('heading', { level: 1, name: /report received/i })).toBeInTheDocument() })
@@ -92,10 +92,10 @@ describe('report flow', () => {
   it('lets an optional answer be cleared by choosing it again', async () => {
     const user = userEvent.setup()
     renderApp('/report/details')
-    const dim = screen.getByRole('radio', { name: /dim/i })
-    await user.click(dim)
-    await user.click(dim)
-    expect(dim).not.toBeChecked()
+    const partiallyLit = screen.getByRole('radio', { name: /partially lit/i })
+    await user.click(partiallyLit)
+    await user.click(partiallyLit)
+    expect(partiallyLit).not.toBeChecked()
   })
 
   it('requires a voice transcript to be confirmed before continuing', async () => {
