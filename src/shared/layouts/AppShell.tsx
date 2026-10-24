@@ -100,7 +100,7 @@ function SiteFooter() {
         <div className="flex flex-col gap-3 text-sm text-on-navy-muted">
           <BrandLogo onDark />
           <p className="m-0 max-w-xl">{tw('footer.disclaimer')}</p>
-          {env.dataMode === 'mock' ? <p className="m-0">{tw('footer.demo')}</p> : null}
+          {env.dataMode === 'mock' ? <p className="m-0">{tw(env.safetyMapMode === 'api' ? 'footer.backendMap' : 'footer.demo')}</p> : null}
         </div>
         <nav aria-label={tw('footerNav')} className="flex flex-wrap content-start gap-x-6 gap-y-1 font-semibold md:justify-end">
           {[home, report, safety, emergency, account].map((item) => (

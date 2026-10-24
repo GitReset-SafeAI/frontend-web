@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import type {
   BoundingBox,
+  Coordinate,
   HotspotsRequest,
   PlaceSuggestion,
   SafetyMapHotspot,
@@ -24,6 +25,7 @@ import { useRouteComparison } from '../hooks/useRouteComparison'
 import { useSafetyMapHotspots } from '../hooks/useSafetyMapHotspots'
 import { clampBounds } from '../utils/clampBounds'
 import { currentTimePeriod } from '../utils/currentTimePeriod'
+import { intensityBand } from '../constants/issueTypes'
 
 // Where the map opens, not where the data lives: panning replaces these bounds
 // with whatever is on screen. Not a user's or an incident's location.
@@ -45,14 +47,16 @@ const TRAVEL_MODE = 'walking' as const
 
 export function SafetyMapSection() {
   const { t } = useTranslation('safety')
-  // Defaults to the period you are actually travelling in; every other
-  // period, and "any time", stay one tap away.
-  const [timePeriod, setTimePeriod] = useState<TimePeriodFilter>(() => currentTimePeriod())
+  // Show all recorded periods initially so the current clock does not hide stored reports.
+  const [timePeriod, setTimePeriod] = useState<TimePeriodFilter>('all')
   const [bounds, setBounds] = useState<BoundingBox>(initialBounds)
   const [origin, setOrigin] = useState<PlannerPoint | null>(null)
   const [destination, setDestination] = useState<PlannerPoint | null>(null)
   const [selectedHotspot, setSelectedHotspot] = useState<SafetyMapHotspot | null>(null)
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null)
+  // Which field a tap on the map fills. Set by focusing a search box; defaults
+  // to filling start then destination, the order someone naturally sets them.
+  const [activeTarget, setActiveTarget] = useState<PlannerTarget>('origin')
 
   // The query key rounds bounds to two decimals, so anything finer than that
   // cannot change the result. Comparing on the same rounding keeps a nudge of
@@ -84,6 +88,18 @@ export function SafetyMapSection() {
     else setDestination(null)
     setSelectedRouteId(null)
   }, [])
+
+  // A tap on open map: the same way a map app lets you drop a pin, and the
+  // fallback the empty-search message already promises when the geocoder
+  // cannot be reached. Fills whichever point is still unset, or the field the
+  // traveller last focused once both are.
+  const handleMapPick = useCallback(
+    (coordinate: Coordinate) => {
+      const target = !origin ? 'origin' : !destination ? 'destination' : activeTarget
+      setPoint(target, { label: t('planner.mapPoint'), coordinate })
+    },
+    [origin, destination, activeTarget, setPoint, t],
+  )
 
   // Always the starting point: that is what a current position is for.
   const handleUseCurrentLocation = useCallback(async () => {
@@ -133,6 +149,7 @@ export function SafetyMapSection() {
         isComparing={comparison.isPending}
         onSelectPlace={handleSelectPlace}
         onClearPoint={handleClearPoint}
+        onFocusField={setActiveTarget}
         onUseCurrentLocation={() => { void handleUseCurrentLocation() }}
         onSwap={handleSwap}
         onCompare={handleCompare}
@@ -140,6 +157,12 @@ export function SafetyMapSection() {
 
       {location.status === 'denied' ? <InfoNote text={t('planner.locationDenied')} /> : null}
       {location.status === 'unavailable' ? <InfoNote text={t('planner.locationUnavailable')} /> : null}
+
+      {hotspotsQuery.data ? (
+        <p role="status" className="m-0 text-lg font-semibold text-navy">
+          {t('weightedIntensity.summary', { reports: hotspots.reduce((sum, area) => sum + area.reportCount, 0), areas: hotspots.length, days: windowDays })}
+        </p>
+      ) : null}
 
       <SafetyMapCanvas
         hotspots={hotspots}
@@ -149,11 +172,11 @@ export function SafetyMapSection() {
         destination={destination?.coordinate ?? null}
         originLabel={journey.position ? t('journey.youAreHere') : origin?.label ?? t('planner.start')}
         destinationLabel={destination?.label ?? t('planner.end')}
-        hotspotLabel={(hotspot) =>
-          hotspot.areaName
+        hotspotLabel={(hotspot) => [hotspot.areaName
             ? `${hotspot.areaName} · ${t('map.reportCount', { count: hotspot.reportCount, days: windowDays })}`
-            : t('map.reportCount', { count: hotspot.reportCount, days: windowDays })
-        }
+            : t('map.reportCount', { count: hotspot.reportCount, days: windowDays }),
+          t('weightedIntensity.area', { band: t(`weightedIntensity.${intensityBand(hotspot.intensity)}`) }),
+        ].join(' · ')}
         routeLabel={(route) =>
           `${t(`routes.role.${route.role}`)} · ${t('routes.hotspotsPassed', { count: route.hotspotsPassed })}`
         }
@@ -161,6 +184,7 @@ export function SafetyMapSection() {
         onHotspotSelect={setSelectedHotspot}
         onRouteSelect={setSelectedRouteId}
         onBoundsChange={handleBoundsChange}
+        onMapPick={handleMapPick}
       />
 
       {comparison.isError ? <InfoNote tone="error" text={t('routes.loadFailed')} /> : null}

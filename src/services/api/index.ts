@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import { env } from '../../config/env'
 import type { AppServices, HotspotsRequest } from '../contracts'
 import { journeyShareSchema, sharedJourneySchema } from '../contracts/journeys'
 import { placeSuggestionSchema } from '../contracts/places'
@@ -10,7 +9,8 @@ import { submitReport } from './reports'
 import { transcribeVoice } from './transcriptions'
 import { createApiClient } from './client'
 
-const client = createApiClient(env.apiBaseUrl)
+// Use the frontend's /api proxy to avoid requiring backend CORS changes.
+const client = createApiClient('/')
 
 // Report creation is connected; other data adapters still fail explicitly.
 const notAgreed = (what: string) => async (): Promise<never> => {

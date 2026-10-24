@@ -20,6 +20,7 @@ interface JourneyPlannerProps {
   isComparing: boolean
   onSelectPlace: (target: PlannerTarget, place: PlaceSuggestion) => void
   onClearPoint: (target: PlannerTarget) => void
+  onFocusField: (target: PlannerTarget) => void
   onUseCurrentLocation: () => void
   onSwap: () => void
   onCompare: () => void
@@ -32,6 +33,7 @@ export function JourneyPlanner({
   isComparing,
   onSelectPlace,
   onClearPoint,
+  onFocusField,
   onUseCurrentLocation,
   onSwap,
   onCompare,
@@ -55,6 +57,7 @@ export function JourneyPlanner({
           placeholder={t('planner.searchPlaceholder')}
           onSelect={(place) => { onSelectPlace('origin', place) }}
           onClear={() => { onClearPoint('origin') }}
+          onFocus={() => { onFocusField('origin') }}
         />
         <PlaceSearchField
           label={t('planner.end')}
@@ -64,6 +67,7 @@ export function JourneyPlanner({
           placeholder={t('planner.searchPlaceholder')}
           onSelect={(place) => { onSelectPlace('destination', place) }}
           onClear={() => { onClearPoint('destination') }}
+          onFocus={() => { onFocusField('destination') }}
         />
       </div>
 
