@@ -1,0 +1,172 @@
+import type {
+  Coordinate,
+  Hotspot,
+  Route,
+  RouteComparisonResult,
+  RouteRole,
+  TravelMode,
+} from '../../contracts/safetyMap';
+
+// Builds synthetic walking routes between any two points so the map can be
+// explored during development. This is a stand-in for OpenStreetMap routing:
+// the paths ignore the real street network and must never be shown as real
+// walking directions.
+
+const EARTH_RADIUS_M = 6_371_000;
+
+// ~1.35 m/s on foot, ~8.3 m/s (30 km/h) in city traffic.
+const SPEED_MPS: Record<TravelMode, number> = { walking: 1.35, driving: 8.3 };
+
+export function distanceMeters(a: Coordinate, b: Coordinate) {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const lat1 = toRad(a.latitude);
+  const lat2 = toRad(b.latitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h));
+}
+
+// Quadratic bend away from the straight line, so alternatives are visibly
+// different paths rather than the same line drawn twice.
+function buildGeometry(origin: Coordinate, destination: Coordinate, bend: number): Coordinate[] {
+  const steps = 6;
+  const normalLat = -(destination.longitude - origin.longitude);
+  const normalLon = destination.latitude - origin.latitude;
+  return Array.from({ length: steps + 1 }, (_, index) => {
+    const t = index / steps;
+    const offset = bend * 4 * t * (1 - t);
+    return {
+      latitude: origin.latitude + (destination.latitude - origin.latitude) * t + normalLat * offset,
+      longitude:
+        origin.longitude + (destination.longitude - origin.longitude) * t + normalLon * offset,
+    };
+  });
+}
+
+function pathLengthMeters(geometry: Coordinate[]) {
+  return geometry.reduce(
+    (total, point, index) => (index === 0 ? 0 : total + distanceMeters(geometry[index - 1], point)),
+    0,
+  );
+}
+
+function hotspotsOnPath(geometry: Coordinate[], hotspots: Hotspot[]) {
+  return hotspots.filter((hotspot) =>
+    geometry.some((point) => distanceMeters(point, hotspot.center) <= hotspot.radiusM),
+  );
+}
+
+function buildRoute(
+  id: string,
+  role: RouteRole,
+  origin: Coordinate,
+  destination: Coordinate,
+  bend: number,
+  hotspots: Hotspot[],
+  travelMode: TravelMode,
+): Omit<Route, 'extraDurationSeconds'> {
+  const geometry = buildGeometry(origin, destination, bend);
+  const distance = pathLengthMeters(geometry);
+  const passed = hotspotsOnPath(geometry, hotspots);
+  // Confidence weights the contribution: an area the AI was unsure about
+  // pushes a route down less than one it understood clearly.
+  const exposure = Math.min(
+    100,
+    Math.round(
+      passed.reduce(
+        (total, hotspot) => total + hotspot.intensity * hotspot.meanConfidence * 45,
+        0,
+      ),
+    ),
+  );
+  return {
+    id,
+    role,
+    durationSeconds: Math.round(distance / SPEED_MPS[travelMode]),
+    distanceMeters: Math.round(distance),
+    geometry,
+    exposureScore: exposure,
+    hotspotsPassed: passed.length,
+    incidentCategories: [
+      ...new Set(passed.flatMap((hotspot) => hotspot.topIncidentCategories)),
+    ].slice(0, 3),
+    safetyConcerns: [
+      ...new Set(passed.flatMap((hotspot) => hotspot.topSafetyConcerns)),
+    ].slice(0, 3),
+  };
+}
+
+export function buildSyntheticComparison(
+  origin: Coordinate,
+  destination: Coordinate,
+  hotspots: Hotspot[],
+  evidenceLevel: RouteComparisonResult['evidenceLevel'],
+  travelMode: TravelMode = 'walking',
+): RouteComparisonResult {
+  const candidates = [
+    buildRoute('mock-route-fastest', 'fastest', origin, destination, 0, hotspots, travelMode),
+    buildRoute(
+      'mock-route-lower-exposure', 'lower-exposure', origin, destination, 0.22, hotspots, travelMode,
+    ),
+    buildRoute(
+      'mock-route-alternative', 'alternative', origin, destination, -0.3, hotspots, travelMode,
+    ),
+  ];
+
+  const fastest = candidates[0];
+  const routes = candidates.map((route) => ({
+    ...route,
+    extraDurationSeconds: Math.max(0, route.durationSeconds - fastest.durationSeconds),
+  }));
+
+  // Same rule the backend applies. Exposure decays with distance, so a route
+  // that enters no reported area still scores slightly above zero; without an
+  // absolute floor a meaningless gap would recommend a real detour.
+  const nothingToAvoid = fastest.hotspotsPassed === 0 || fastest.exposureScore < 5;
+  const best = nothingToAvoid
+    ? undefined
+    : routes
+        .slice(1)
+        .filter(
+          (route) =>
+            route.exposureScore <= fastest.exposureScore * 0.75 &&
+            fastest.exposureScore - route.exposureScore >= 5 &&
+            route.extraDurationSeconds <= Math.max(300, fastest.durationSeconds * 0.3),
+        )
+        .sort((a, b) => a.exposureScore - b.exposureScore)[0];
+
+  // The least-exposed option is always named, even when it is not worth a
+  // detour, so the caller is never left with only "nothing qualified".
+  const leastExposed = [...routes].sort(
+    (a, b) => a.exposureScore - b.exposureScore || a.durationSeconds - b.durationSeconds,
+  )[0];
+
+  // A route through nothing at all, offered without a time limit.
+  const clear = routes
+    .filter((route) => route.hotspotsPassed === 0)
+    .sort((a, b) => a.durationSeconds - b.durationSeconds)[0];
+
+  return {
+    routes: routes.map((route) =>
+      clear && route.id === clear.id && route.id !== fastest.id && route.id !== best?.id
+        ? { ...route, role: 'avoids-all' as const }
+        : route,
+    ),
+    recommendedRouteId: best?.id ?? null,
+    lowestExposureRouteId: leastExposed?.id ?? null,
+    clearRouteId: clear?.id ?? null,
+    originInReportedArea: hotspots.some(
+      (hotspot) => distanceMeters(origin, hotspot.center) <= hotspot.radiusM,
+    ),
+    destinationInReportedArea: hotspots.some(
+      (hotspot) => distanceMeters(destination, hotspot.center) <= hotspot.radiusM,
+    ),
+    evidenceLevel,
+    travelMode,
+    // Mock geometry is a drawn line, never the street network.
+    usesStreetNetwork: false,
+    pedestrianProfileAvailable: false,
+  };
+}

@@ -147,7 +147,7 @@ describe('session lifecycle and redirects', () => {
     renderApp('/login', { state: { from: '/safety' } })
     const user = await fillLogin()
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
-    expect(await screen.findByTestId('map-slot')).toBeInTheDocument()
+    expect(await screen.findByTestId('safety-map')).toBeInTheDocument()
   })
 
   it('rejects an external return destination after login', async () => {
@@ -352,7 +352,7 @@ describe('configuration and service isolation', () => {
     await mockServices.auth.logIn({ email: 'demo@safestep.lk', password: 'anything' })
     expect((await mockServices.contacts.list()).length).toBeGreaterThan(0)
     expect(services.reports).toBe(mockServices.reports)
-    expect(services.hotspots).toBe(mockServices.hotspots)
+    expect(services.safetyMap).toBe(mockServices.safetyMap)
     expect(services.contacts).toBe(apiServices.contacts)
     await expect(services.contacts.list()).rejects.toMatchObject({ kind: 'not-implemented' })
     await expect(services.contacts.add({ name: 'Test', phone: '+94771234567' })).rejects.toMatchObject({ kind: 'not-implemented' })
