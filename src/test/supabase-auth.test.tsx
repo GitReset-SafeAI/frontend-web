@@ -378,7 +378,7 @@ describe('configuration and service isolation', () => {
     expect((await mockServices.contacts.list()).length).toBeGreaterThan(0)
     expect(services.reports.submitReport).toBe(apiServices.reports.submitReport)
     expect(services.reports.transcribeVoice).toBe(mockServices.reports.transcribeVoice)
-    expect(services.hotspots).toBe(mockServices.hotspots)
+    expect(services.safetyMap).toBe(mockServices.safetyMap)
     expect(services.contacts).toBe(apiServices.contacts)
     await expect(services.contacts.list()).rejects.toMatchObject({ kind: 'not-implemented' })
     await expect(services.contacts.add({ name: 'Test', phone: '+94771234567' })).rejects.toMatchObject({ kind: 'not-implemented' })

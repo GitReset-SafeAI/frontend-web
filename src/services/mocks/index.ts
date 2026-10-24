@@ -2,7 +2,9 @@ import type { AppServices, HotspotsRequest, HotspotsResult } from '../contracts'
 import { ApiError } from '../api/ApiError'
 import { mockAuth, mockContacts } from './accounts'
 import { analyseSyntheticReport, sampleTranscript } from './fixtures/analysis'
-import { sampleHotspots } from './fixtures/hotspots'
+import { searchDemoPlaces } from './fixtures/places'
+import { demoHotspots } from './fixtures/safetyMap'
+import { buildSyntheticComparison } from './fixtures/syntheticRoutes'
 import { toReportRequest } from '../api/reportRequest'
 
 // Simulated latency makes loading and processing states visible in demos. Tests skip it.

@@ -201,8 +201,11 @@ not a current-safety answer and is replaced by the actual safety question withou
 retained in the existing receipt/success flow. Demo analysis is kept separately under `demoAnalysis`;
 real creation does not require or request analysis output, and there is no analysis-status assumption.
 
-`services/api/reports.ts` posts to `${VITE_API_BASE_URL}/api/v1/reports`. The public base URL defaults to
-`http://127.0.0.1:8000`; set it in `.env.local` only when using another backend and restart Vite. It must
+`services/api/reports.ts` posts to `${VITE_API_BASE_URL}/api/v1/reports`. The API base URL is optional in
+the incoming environment configuration and has no runtime default. For report submission or other
+API-backed features, set `VITE_API_BASE_URL=http://127.0.0.1:8000` (or your backend base URL) in your
+existing `.env.local` and restart Vite. Missing API configuration shows a configuration error when an
+API request is attempted; mock-backed features and Supabase login remain usable. The URL must
 point to the backend origin/base, without a query string, fragment, or credentials. The backend must
 allow the frontend origin and Authorization/Content-Type headers through CORS for browser requests.
 Use the latest backend deployment: an older running OpenAPI document may still lack `reported_time`.

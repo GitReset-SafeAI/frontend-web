@@ -129,7 +129,7 @@ describe('authenticated report transport (all requests mocked)', () => {
   it('routes only real report creation to FastAPI while preserving other mock-backed services', () => {
     expect(services.reports.submitReport).toBe(apiServices.reports.submitReport)
     expect(services.reports.transcribeVoice).toBe(mockServices.reports.transcribeVoice)
-    expect(services.hotspots).toBe(mockServices.hotspots)
+    expect(services.safetyMap).toBe(mockServices.safetyMap)
     expect(selectServices('mock', 'demo').reports.submitReport).toBe(mockServices.reports.submitReport)
   })
 })

@@ -7,6 +7,9 @@ import { placeSuggestionSchema } from '../contracts/places'
 import { hotspotsResultSchema, routeComparisonResultSchema } from '../contracts/safetyMap'
 import { ApiError } from './ApiError'
 import { submitReport } from './reports'
+import { createApiClient } from './client'
+
+const client = createApiClient(env.apiBaseUrl)
 
 // Report creation is connected; other data adapters still fail explicitly.
 const notAgreed = (what: string) => async (): Promise<never> => {

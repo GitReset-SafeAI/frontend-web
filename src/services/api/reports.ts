@@ -5,8 +5,12 @@ import { ApiError } from './ApiError'
 import { reportRequestPath, toReportRequest } from './reportRequest'
 
 function reportEndpoint(): string {
+  const baseUrl = env.apiBaseUrl
+  if (!baseUrl) {
+    throw new ApiError('configuration', 'Set VITE_API_BASE_URL to the backend base URL, then restart Vite.')
+  }
   try {
-    const url = new URL(env.apiBaseUrl)
+    const url = new URL(baseUrl)
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error()
     return `${url.href.replace(/\/+$/, '')}${reportRequestPath}`
   } catch {

@@ -1,6 +1,7 @@
 export type ApiErrorKind = 'not-implemented' | 'network' | 'unauthorized' | 'not-found' | 'conflict' | 'limit' | 'unknown'
   | 'configuration' | 'invalid-credentials' | 'email-unconfirmed' | 'rate-limit'
   | 'forbidden' | 'validation' | 'confirmation'
+  | 'timeout' | 'cancelled' | 'server' | 'http' | 'invalid-response'
 
 export class ApiError extends Error {
   readonly kind: ApiErrorKind
