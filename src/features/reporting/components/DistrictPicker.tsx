@@ -29,8 +29,8 @@ export function DistrictPicker({ open, selected, onSelect, onClose }: DistrictPi
                 type="button"
                 aria-pressed={active}
                 onClick={() => { onSelect(district.id) }}
-                className={`flex min-h-12 w-full items-center justify-between gap-2 rounded-sm px-3 text-left font-medium ${
-                  active ? 'border-2 border-primary-dark bg-tint' : 'border border-line hover:bg-tint-soft'
+                className={`flex min-h-12 w-full items-center justify-between gap-2 rounded-lg px-3 text-left font-medium ${
+                  active ? 'border-2 border-navy bg-mint-light' : 'border border-line hover:bg-mint-soft'
                 }`}
               >
                 {t(`districts.${district.id}`)}

@@ -23,7 +23,7 @@ export function Dialog({ open, onClose, labelledBy, children }: DialogProps) {
       aria-labelledby={labelledBy}
       onClose={onClose}
       onClick={(event) => { if (event.target === ref.current) onClose() }}
-      className="m-auto w-[min(32rem,calc(100%-2rem))] rounded-lg border-0 bg-surface p-0 text-ink shadow-xl backdrop:bg-ink/60 max-sm:mb-0 max-sm:w-full max-sm:max-w-none max-sm:rounded-b-none"
+      className="m-auto w-[min(32rem,calc(100%-2rem))] rounded-lg border-0 bg-surface p-0 text-ink shadow-lift backdrop:bg-ink/60 max-sm:mb-0 max-sm:w-full max-sm:max-w-none max-sm:rounded-b-none"
     >
       {/* Mounted only while open, so every opening starts from a clean state. */}
       {open ? <div className="flex flex-col gap-4 p-6">{children}</div> : null}

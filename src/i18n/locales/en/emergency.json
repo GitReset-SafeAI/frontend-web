@@ -11,7 +11,7 @@
   "callNow": "Call now",
   "cancel": "Cancel",
   "callAmbulance": "Need an ambulance? Call {{number}}",
-  "disclaimer": "SafeRoute AI does not alert anyone for you. This places a call from your phone.",
+  "disclaimer": "SafeStep does not alert anyone for you. This places a call from your phone.",
   "dialingTitle": "Opening your phone…",
   "calledTitle": "Emergency call started",
   "calledBody": "If the call did not connect, try again.",
@@ -19,5 +19,11 @@
   "callAmbulanceAgain": "Call ambulance ({{number}})",
   "close": "Close",
   "failedTitle": "We couldn't open the phone",
-  "failedBody": "Please dial {{number}} on your phone now."
+  "failedBody": "Please dial {{number}} on your phone now.",
+  "timeline": {
+    "title": "What happens when you tap",
+    "tap": "You tap SOS",
+    "wait": "A {{seconds}}-second countdown starts. You can cancel any time.",
+    "call": "Your phone calls {{number}} (police)"
+  }
 }

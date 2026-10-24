@@ -59,7 +59,7 @@ export function SosPage() {
   const ended = phase === 'called' || phase === 'failed'
 
   return (
-    <div className="flex min-h-svh flex-col bg-sos text-white">
+    <div className="flex min-h-svh flex-col bg-sos text-white [&_:focus-visible]:outline-white [&_:focus-visible]:shadow-none">
       <p className="sr-only" role="status">
         {t('announceStart', { number: emergencyNumbers.police, seconds: SOS_COUNTDOWN_SECONDS })}
       </p>

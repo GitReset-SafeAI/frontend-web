@@ -127,5 +127,14 @@
     "monaragala": "Monaragala",
     "ratnapura": "Ratnapura",
     "kegalle": "Kegalle"
+  },
+  "stops": {
+    "describe": "Describe",
+    "when": "When & where",
+    "details": "Details",
+    "review": "Review"
+  },
+  "aside": {
+    "title": "Good to know"
   }
 }

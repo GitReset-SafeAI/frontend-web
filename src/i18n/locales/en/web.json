@@ -3,9 +3,7 @@
   "mainNav": "Main navigation",
   "emergencyNav": "Emergency",
   "landing": {
-    "badge": "Community safety reporting for Sri Lanka",
-    "title": "Know what has been reported before you go.",
-    "subtitle": "SafeRoute AI helps girls and women who travel alone share safety incidents and see where reports are gathering. AI turns each report into clear, structured information and always shows its limits.",
+    "subtitle": "Report an incident in minutes, and see where others have reported them across Sri Lanka.",
     "ctaReport": "Report an incident",
     "ctaMap": "Explore the safety map",
     "previewTitle": "What an AI estimate looks like",
@@ -48,7 +46,7 @@
       },
       "sos": {
         "title": "SOS calls from your phone",
-        "body": "SOS places a call from your device. SafeRoute AI does not alert anyone for you."
+        "body": "SOS places a call from your device. SafeStep does not alert anyone for you."
       }
     },
     "audienceTitle": "Who it is for",
@@ -58,10 +56,13 @@
       "contributors": "Community members who want to contribute incident reports"
     },
     "finalTitle": "What you know can help the next person.",
-    "finalBody": "Reporting takes about two minutes and every question after the first is optional."
+    "finalBody": "Reporting takes about two minutes and every question after the first is optional.",
+    "titleLead": "Know what has been reported",
+    "titleEmphasis": "before you go.",
+    "stamp": "Estimate · not a verdict"
   },
   "footer": {
-    "disclaimer": "SafeRoute AI cannot guarantee that any place or route is safe. It shows reported incidents and estimates only.",
+    "disclaimer": "SafeStep cannot guarantee that any place or route is safe. It shows reported incidents and estimates only.",
     "demo": "This is a demo: AI results and map data are synthetic samples.",
     "emergency": "In an emergency: police {{police}} · ambulance {{ambulance}}"
   },
@@ -78,5 +79,6 @@
     "body": "The page you are looking for does not exist.",
     "home": "Back to home"
   },
-  "safetyTabShort": "Safety map"
+  "safetyTabShort": "Safety map",
+  "footerNav": "Footer navigation"
 }

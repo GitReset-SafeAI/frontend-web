@@ -73,9 +73,9 @@ function VoiceSheet({ onClose, onTranscript }: Omit<VoiceInputDialogProps, 'open
       <h2 id="voice-title" className="text-xl font-semibold">{t('voice.title')}</h2>
       <InfoNote text={t('voice.demoNote')} />
       <div className="flex flex-col items-center gap-3 py-4 text-center">
-        {phase === 'transcribing' ? <Loader2 className="size-14 animate-spin text-primary-dark" aria-hidden />
+        {phase === 'transcribing' ? <Loader2 className="size-14 animate-spin text-navy" aria-hidden />
           : phase === 'error' ? <MicOff className="size-14 text-danger" aria-hidden />
-            : <Mic className="size-14 text-primary-dark" aria-hidden />}
+            : <Mic className="size-14 text-navy" aria-hidden />}
         <p role="status" className="m-0 text-lg">{status}</p>
       </div>
       {phase === 'idle' ? (

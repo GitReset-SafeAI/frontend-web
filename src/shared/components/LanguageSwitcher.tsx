@@ -17,18 +17,18 @@ export function LanguageSwitcher() {
 
   return (
     <div className="relative">
-      <Languages className="pointer-events-none absolute left-3 top-1/2 hidden size-5 -translate-y-1/2 text-primary-dark sm:block" aria-hidden />
+      <Languages className="pointer-events-none absolute left-3 top-1/2 hidden size-5 -translate-y-1/2 text-navy sm:block" aria-hidden />
       <select
         value={current}
         aria-label={t('language')}
         onChange={(event) => { onChange(event.target.value) }}
-        className="min-h-12 cursor-pointer appearance-none rounded-full border border-ink-muted bg-surface py-0 pl-3 pr-9 text-[0.9375rem] font-semibold text-primary-dark hover:bg-tint-soft sm:pl-10"
+        className="min-h-12 cursor-pointer appearance-none rounded-full border border-ink-muted/60 bg-surface py-0 pl-3 pr-9 text-[0.9375rem] font-semibold text-navy hover:bg-mint-soft sm:pl-10"
       >
         {supportedLanguages.map((language) => (
           <option key={language} value={language} lang={language}>{languageNames[language]}</option>
         ))}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-primary-dark" aria-hidden />
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-navy" aria-hidden />
     </div>
   )
 }

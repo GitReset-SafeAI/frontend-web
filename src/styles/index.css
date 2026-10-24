@@ -1,21 +1,33 @@
 @import "tailwindcss";
 
-/* Brand tokens mirror the mobile app (GitReset-Frontend/src/shared/theme/tokens.ts). */
-/* Tamil and Sinhala words are wide, so display headings step down a size in those languages. */
-@custom-variant ta (&:where(:lang(ta), :lang(ta) *));
-@custom-variant si (&:where(:lang(si), :lang(si) *));
-
+/*
+ * SafeStep brand tokens. Contrast was checked against the real pairings (see design.md):
+ *  - Navy carries text, primary actions and selection outlines.
+ *  - Mint is a calm supporting surface (selected states, notes, tonal buttons). Never body text.
+ *  - Coral is the warm accent. White on coral fails contrast, so coral surfaces always take navy text,
+ *    and coral is never used as text except in the logotype.
+ *  - Red is reserved for SOS and errors so it keeps its meaning.
+ */
 @theme {
-  --color-screen: #faf7fc;
+  --color-screen: #fefcf7;
   --color-surface: #ffffff;
-  --color-primary: #8b5ba7;
-  --color-primary-dark: #7b3fb5;
-  --color-tint: #d8ccf5;
-  --color-tint-soft: #e8ddf7;
-  --color-ink: #30243a;
-  --color-ink-muted: #6f6478;
-  --color-line: #e8e0ee;
-  --color-disabled: #b8a9c5;
+
+  --color-navy: #133148;
+  --color-navy-hover: #0b2236;
+  --color-mint: #8cc1b2;
+  --color-mint-hover: #7db4a3;
+  --color-mint-light: #d5eae3;
+  --color-mint-soft: #eaf4f0;
+  --color-coral: #e9736b;
+  --color-coral-hover: #f0847d;
+
+  --color-ink: #133148;
+  --color-ink-muted: #4a5c6c;
+  --color-line: #dcd8cb;
+  --color-disabled: #a9b4bd;
+
+  /* Secondary text on navy surfaces (8.5:1). */
+  --color-on-navy-muted: #c3cfda;
 
   --color-info: #245a89;
   --color-success: #25633c;
@@ -24,23 +36,28 @@
   --color-danger-bg: #fce8eb;
   --color-unknown: #535e68;
 
-  /* Red is reserved for SOS so it keeps its meaning. */
   --color-sos: #a62532;
   --color-sos-pressed: #851d28;
   --color-sos-ring-inner: #f9dce0;
   --color-sos-ring-outer: #fcedef;
 
-  /* Reported-activity ramp: light to dark purple, never red or green. */
+  /* Reported-activity ramp: light to dark navy, never red or green (a pale area is not "safe"). */
   --color-activity-insufficient: #ffffff;
-  --color-activity-low: #d8ccf5;
-  --color-activity-moderate: #7b3fb5;
-  --color-activity-high: #4a1f73;
+  --color-activity-low: #c9d6e2;
+  --color-activity-moderate: #5b7c99;
+  --color-activity-high: #133148;
 
   --radius-sm: 8px;
   --radius-md: 16px;
   --radius-lg: 24px;
 
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Sinhala", "Iskoola Pota", "Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif;
+  /* Body: friendly geometric sans. Display: a soft, warm serif. Sinhala and Tamil get matching Noto faces,
+     loaded only when those scripts appear on the page. */
+  --font-sans: "Figtree Variable", "Noto Sans Sinhala Variable", "Noto Sans Tamil Variable", system-ui, -apple-system, "Segoe UI", "Iskoola Pota", "Latha", "Nirmala UI", sans-serif;
+  --font-display: "Fraunces Variable", "Noto Serif Sinhala Variable", "Noto Serif Tamil Variable", Georgia, "Iskoola Pota", "Latha", serif;
+
+  --shadow-card: 0 1px 2px rgb(19 49 72 / 0.06), 0 10px 28px rgb(19 49 72 / 0.07);
+  --shadow-lift: 0 2px 4px rgb(19 49 72 / 0.08), 0 18px 44px rgb(19 49 72 / 0.16);
 }
 
 @layer base {
@@ -90,15 +107,35 @@
   h1,
   h2,
   h3 {
-    color: var(--color-primary-dark);
+    color: var(--color-navy);
     line-height: 1.3;
     margin: 0;
   }
 
-  /* Visible focus for every interactive element. */
+  /* Headlines use the display serif. Tight tracking suits Latin only, so it is reset for Sinhala/Tamil. */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.12;
+  }
+
+  :lang(si) :is(h1, h2),
+  :lang(ta) :is(h1, h2) {
+    letter-spacing: 0;
+    line-height: 1.3;
+  }
+
+  ::selection {
+    background: var(--color-mint-light);
+  }
+
+  /* Visible focus for every interactive element: a navy ring with an off-white gap, 3px, high contrast. */
   :focus-visible {
-    outline: 3px solid var(--color-primary-dark);
+    outline: 3px solid var(--color-navy);
     outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--color-screen);
   }
 
   button {
@@ -112,6 +149,112 @@
     *::after {
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * Display sizes. Latin, Sinhala and Tamil need different sizes: Tamil clusters are wide and its longest
+   * words (e.g. "அறிக்கையிடப்பட்டுள்ளது") must still fit a phone and a half-width hero column.
+   * The per-script rules use :lang() so they always beat the base size, at every breakpoint.
+   */
+  .display-xl { font-size: 2.5rem; }
+  .display-lg { font-size: 2rem; }
+  .display-md { font-size: 1.875rem; }
+  @media (min-width: 40rem) {
+    .display-xl { font-size: 3.75rem; }
+    .display-lg { font-size: 2.75rem; }
+    .display-md { font-size: 2.25rem; }
+  }
+  @media (min-width: 64rem) {
+    .display-xl { font-size: 4rem; }
+  }
+
+  :lang(si) .display-xl { font-size: 2.125rem; }
+  :lang(si) .display-lg { font-size: 1.75rem; }
+  :lang(si) .display-md { font-size: 1.5rem; }
+  :lang(ta) .display-xl { font-size: 1.625rem; }
+  :lang(ta) .display-lg { font-size: 1.625rem; }
+  :lang(ta) .display-md { font-size: 1.5rem; }
+  @media (min-width: 40rem) {
+    :lang(si) .display-xl { font-size: 3rem; }
+    :lang(si) .display-lg { font-size: 2.25rem; }
+    :lang(si) .display-md { font-size: 1.75rem; }
+    :lang(ta) .display-xl { font-size: 2.25rem; }
+    :lang(ta) .display-lg { font-size: 2.125rem; }
+    :lang(ta) .display-md { font-size: 1.75rem; }
+  }
+  @media (min-width: 64rem) {
+    :lang(si) .display-xl { font-size: 3.25rem; }
+    :lang(ta) .display-xl { font-size: 2.375rem; }
+  }
+
+  /* Hand-drawn coral underline for the one phrase that matters in the hero headline. */
+  .scribble {
+    font-style: normal;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12' preserveAspectRatio='none'%3E%3Cpath d='M2 8 C 30 2, 55 11, 85 6 S 150 2, 198 7' fill='none' stroke='%23e9736b' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat left bottom / 100% 0.32em;
+    padding-bottom: 0.18em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  /* Ticket: two halves with semicircle notches where they meet. A drop-shadow on the wrapper follows the cut-outs. */
+  .ticket {
+    filter: drop-shadow(0 1px 1px rgb(19 49 72 / 0.08)) drop-shadow(0 14px 22px rgb(19 49 72 / 0.1));
+  }
+
+  .ticket-top {
+    -webkit-mask: radial-gradient(circle 14px at 0 100%, #0000 97%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 14px at 100% 100%, #0000 97%, #000) right / 51% 100% no-repeat;
+    mask: radial-gradient(circle 14px at 0 100%, #0000 97%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 14px at 100% 100%, #0000 97%, #000) right / 51% 100% no-repeat;
+  }
+
+  .ticket-bottom {
+    -webkit-mask: radial-gradient(circle 14px at 0 0, #0000 97%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 14px at 100% 0, #0000 97%, #000) right / 51% 100% no-repeat;
+    mask: radial-gradient(circle 14px at 0 0, #0000 97%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle 14px at 100% 0, #0000 97%, #000) right / 51% 100% no-repeat;
+  }
+
+  /* Gentle entrance for hero content; respects reduced motion via the global rule above. */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .rise {
+    animation: rise 0.6s ease-out both;
+  }
+
+  /* The hero route: drawn on once, with pale dots flowing toward the destination. */
+  @keyframes route-draw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes route-flow {
+    to { stroke-dashoffset: -17; }
+  }
+
+  .route-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: route-draw 2.2s 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .route-flow {
+    animation: route-flow 0.9s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .route-draw {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+
+    .route-flow {
+      animation: none;
     }
   }
 }

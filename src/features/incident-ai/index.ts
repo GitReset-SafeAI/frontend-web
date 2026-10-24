@@ -1,2 +1,2 @@
-export { AnalysisSummary } from './AnalysisSummary'
+export { EstimateTicket } from './EstimateTicket'
 export { useIncidentLabels } from './useIncidentLabels'

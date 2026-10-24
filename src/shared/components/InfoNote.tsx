@@ -13,9 +13,9 @@ export function InfoNote({ text, icon, tone = 'neutral' }: InfoNoteProps) {
   return (
     <div
       role={error ? 'alert' : undefined}
-      className={`flex items-start gap-3 rounded-sm p-4 ${error ? 'bg-danger-bg' : 'bg-tint-soft'}`}
+      className={`flex items-start gap-3 rounded-lg p-4 ${error ? 'bg-danger-bg' : 'bg-mint-soft'}`}
     >
-      <Icon className={`mt-1 size-5 shrink-0 ${error ? 'text-danger' : 'text-primary-dark'}`} aria-hidden />
+      <Icon className={`mt-1 size-5 shrink-0 ${error ? 'text-danger' : 'text-navy'}`} aria-hidden />
       <p className="m-0 text-[0.9375rem] text-ink">{text}</p>
     </div>
   )

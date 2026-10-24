@@ -30,7 +30,7 @@ export function isAppLanguage(value: string | null | undefined): value is AppLan
   return supportedLanguages.some((language) => language === value)
 }
 
-const storageKey = 'saferoute.language'
+const storageKey = 'safestep.language'
 
 // Interface language only. It is a convenience preference, never report content.
 function initialLanguage(): AppLanguage {

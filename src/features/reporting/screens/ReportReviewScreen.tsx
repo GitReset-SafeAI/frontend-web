@@ -7,6 +7,7 @@ import { Button } from '../../../shared/components/Button'
 import { Card } from '../../../shared/components/Card'
 import { InfoNote } from '../../../shared/components/InfoNote'
 import { StepLayout } from '../../../shared/layouts/StepLayout'
+import { ReportAside } from '../components/ReportAside'
 import { useSubmitReport } from '../hooks/useSubmitReport'
 import { toSubmission, useReportDraft } from '../reportDraftContext'
 
@@ -67,6 +68,8 @@ export function ReportReviewScreen() {
 
   return (
     <StepLayout
+      step={{ current: 4, total: 4 }}
+      aside={<ReportAside />}
       title={t('review.title')}
       subtitle={t('review.subtitle')}
       footer={(

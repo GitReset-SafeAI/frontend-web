@@ -127,5 +127,14 @@
     "monaragala": "මොණරාගල",
     "ratnapura": "රත්නපුර",
     "kegalle": "කෑගල්ල"
+  },
+  "stops": {
+    "describe": "විස්තර කරන්න",
+    "when": "කවදා, කොතැනද",
+    "details": "විස්තර",
+    "review": "සමාලෝචනය"
+  },
+  "aside": {
+    "title": "දැනගත යුතු දේ"
   }
 }

@@ -9,6 +9,7 @@ import { Button } from '../../../shared/components/Button'
 import { ChoiceGroup } from '../../../shared/components/ChoiceGroup'
 import { InfoNote } from '../../../shared/components/InfoNote'
 import { StepLayout } from '../../../shared/layouts/StepLayout'
+import { ReportAside } from '../components/ReportAside'
 import { DistrictPicker } from '../components/DistrictPicker'
 import { districts } from '../districts'
 import { useApproximateLocation } from '../hooks/useApproximateLocation'
@@ -38,7 +39,8 @@ export function ReportWhenScreen() {
 
   return (
     <StepLayout
-      step={{ current: 2, total: 3 }}
+      step={{ current: 2, total: 4 }}
+      aside={<ReportAside />}
       title={t('when.title')}
       subtitle={t('when.subtitle')}
       footer={(
@@ -60,10 +62,10 @@ export function ReportWhenScreen() {
         <p className="m-0 text-ink-muted">{t('when.whereHint')}</p>
 
         {location ? (
-          <div className="flex items-center gap-3 rounded-sm border-2 border-primary-dark bg-tint p-4">
+          <div className="flex items-center gap-3 rounded-lg border-2 border-navy bg-mint-light p-4">
             {location.source === 'device'
-              ? <Crosshair className="size-6 shrink-0 text-primary-dark" aria-hidden />
-              : <MapPin className="size-6 shrink-0 text-primary-dark" aria-hidden />}
+              ? <Crosshair className="size-6 shrink-0 text-navy" aria-hidden />
+              : <MapPin className="size-6 shrink-0 text-navy" aria-hidden />}
             <p className="m-0 flex-1">
               {location.source === 'device' || !location.districtId
                 ? t('when.selectedCurrent')

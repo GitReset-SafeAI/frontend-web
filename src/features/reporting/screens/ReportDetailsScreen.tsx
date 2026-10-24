@@ -6,6 +6,7 @@ import { crowdLevels, lightingLevels, nearbyAnswers } from '../../../services/co
 import { Button } from '../../../shared/components/Button'
 import { ChoiceGroup } from '../../../shared/components/ChoiceGroup'
 import { StepLayout } from '../../../shared/layouts/StepLayout'
+import { ReportAside } from '../components/ReportAside'
 import { useReportDraft } from '../reportDraftContext'
 
 export function ReportDetailsScreen() {
@@ -17,7 +18,8 @@ export function ReportDetailsScreen() {
 
   return (
     <StepLayout
-      step={{ current: 3, total: 3 }}
+      step={{ current: 3, total: 4 }}
+      aside={<ReportAside />}
       title={t('details.title')}
       subtitle={t('details.subtitle')}
       footer={(

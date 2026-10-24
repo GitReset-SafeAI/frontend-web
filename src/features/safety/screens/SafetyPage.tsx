@@ -7,7 +7,7 @@ import { hotspotActivityLevels } from '../../../services/contracts/hotspots'
 import { Button } from '../../../shared/components/Button'
 import { InfoNote } from '../../../shared/components/InfoNote'
 import { Spinner } from '../../../shared/components/Spinner'
-import { ActivityBadge } from '../components/ActivityBadge'
+import { swatchColor } from '../components/activityStyles'
 import { HotspotMapSlot } from '../components/HotspotMapSlot'
 import { HotspotSummary } from '../components/HotspotSummary'
 import { useHotspots } from '../hooks/useHotspots'
@@ -15,8 +15,8 @@ import { useHotspots } from '../hooks/useHotspots'
 type ViewMode = 'map' | 'list'
 
 const tabClass = (active: boolean) =>
-  `inline-flex min-h-12 flex-1 items-center justify-center gap-2 px-4 font-semibold ${
-    active ? 'bg-tint text-ink underline decoration-2 underline-offset-4' : 'bg-surface text-ink-muted hover:bg-tint-soft'
+  `inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-4 font-semibold transition-colors ${
+    active ? 'bg-surface text-navy shadow-card' : 'text-ink-muted hover:text-navy'
   }`
 
 // Phones show Map or List; large screens show both side by side. The list is also the accessible,
@@ -33,23 +33,29 @@ export function SafetyPage() {
   const selected = sorted.find((hotspot) => hotspot.id === selectedId)
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+    <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <div className="flex flex-col gap-4">
-        <h1 className="text-[1.75rem] font-bold sm:text-4xl ta:text-2xl ta:sm:text-3xl">{t('mapTitle')}</h1>
+        <h1 className="display-lg">{t('mapTitle')}</h1>
 
         {env.dataMode === 'mock' ? (
-          <p className="m-0 inline-flex items-center gap-2 text-sm font-semibold text-warning">
+          <p className="m-0 inline-flex w-fit items-center gap-2 rounded-full bg-[#fff3d6] px-4 py-1.5 text-sm font-semibold text-warning">
             <FlaskConical className="size-[18px]" aria-hidden />
             {tc('sampleData')}
           </p>
         ) : null}
-        <p className="m-0 text-ink-muted">{t('note')}</p>
+        <p className="m-0 max-w-2xl text-lg text-ink-muted">{t('note')}</p>
 
-        <div className="flex flex-wrap gap-x-5 gap-y-2" role="group" aria-label={t('legendTitle')}>
-          {hotspotActivityLevels.map((level) => <ActivityBadge key={level} activity={level} />)}
+        {/* A heat scale: pale to deep navy. "Not enough data" is dashed and empty, never a reassuring colour. */}
+        <div role="group" aria-label={t('legendTitle')} className="grid max-w-xl grid-cols-4 gap-1.5">
+          {hotspotActivityLevels.map((level) => (
+            <div key={level} className="flex flex-col gap-1.5">
+              <span className={`h-3 rounded-full border border-ink-muted/50 ${swatchColor[level]}`} aria-hidden />
+              <span className="text-xs font-semibold leading-tight text-ink">{t(`levels.${level}`)}</span>
+            </div>
+          ))}
         </div>
 
-        <div role="tablist" aria-label={t('viewSwitchA11y')} className="flex overflow-hidden rounded-sm border border-ink-muted lg:hidden">
+        <div role="tablist" aria-label={t('viewSwitchA11y')} className="flex gap-1 rounded-full bg-mint-soft p-1 lg:hidden">
           <button type="button" role="tab" aria-selected={mode === 'map'} className={tabClass(mode === 'map')} onClick={() => { setMode('map') }}>
             <Map className="size-5" aria-hidden />{t('viewMap')}
           </button>

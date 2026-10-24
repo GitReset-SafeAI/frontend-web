@@ -7,6 +7,7 @@ import { DESCRIPTION_MAX_LENGTH, DESCRIPTION_MIN_LENGTH } from '../../../service
 import { Button } from '../../../shared/components/Button'
 import { InfoNote } from '../../../shared/components/InfoNote'
 import { StepLayout } from '../../../shared/layouts/StepLayout'
+import { ReportAside } from '../components/ReportAside'
 import { VoiceInputDialog } from '../components/VoiceInputDialog'
 import { useReportDraft } from '../reportDraftContext'
 
@@ -44,7 +45,8 @@ export function ReportDescribeScreen() {
 
   return (
     <StepLayout
-      step={{ current: 1, total: 3 }}
+      step={{ current: 1, total: 4 }}
+      aside={<ReportAside />}
       title={t('describe.title')}
       subtitle={t('describe.subtitle')}
       footer={<Button onClick={onNext}>{tc('next')}</Button>}
@@ -59,7 +61,7 @@ export function ReportDescribeScreen() {
           aria-describedby={showLengthError ? errorId : undefined}
           maxLength={DESCRIPTION_MAX_LENGTH}
           rows={8}
-          className={`min-h-48 w-full resize-y rounded-sm border bg-surface p-4 text-base text-ink placeholder:text-ink-muted ${
+          className={`min-h-48 w-full resize-y rounded-lg border bg-surface p-4 text-base text-ink placeholder:text-ink-muted ${
             showLengthError ? 'border-2 border-danger' : 'border-ink-muted'
           }`}
         />

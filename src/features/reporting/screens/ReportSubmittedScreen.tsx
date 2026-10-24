@@ -3,10 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../shared/components/Button'
-import { Card } from '../../../shared/components/Card'
 import { InfoNote } from '../../../shared/components/InfoNote'
 import { StepLayout } from '../../../shared/layouts/StepLayout'
-import { AnalysisSummary } from '../../incident-ai'
+import { EstimateTicket } from '../../incident-ai'
 import { useReportDraft } from '../reportDraftContext'
 
 export function ReportSubmittedScreen() {
@@ -40,12 +39,7 @@ export function ReportSubmittedScreen() {
         <>
           <CheckCircle2 className="size-14 text-success" aria-hidden />
 
-          <Card className="flex flex-col gap-1">
-            <p className="m-0 text-sm font-semibold text-ink-muted">{t('submitted.yourWords')}</p>
-            <p className="m-0 whitespace-pre-wrap break-words">{draft.description.trim()}</p>
-          </Card>
-
-          <AnalysisSummary analysis={receipt.analysis} />
+          <EstimateTicket words={draft.description.trim()} analysis={receipt.analysis} />
           <InfoNote icon={ShieldCheck} text={t('submitted.next')} />
         </>
       ) : null}

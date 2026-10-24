@@ -18,7 +18,7 @@ export function ChoiceGroup<T extends string>({ label, options, value, onChange 
   const labelId = useId()
   return (
     <div className="flex flex-col gap-3">
-      <h2 id={labelId} className="text-lg font-semibold text-ink">{label}</h2>
+      <h2 id={labelId} className="font-sans text-lg font-semibold tracking-normal text-ink">{label}</h2>
       <div role="radiogroup" aria-labelledby={labelId} className="flex flex-wrap gap-3">
         {options.map((option) => {
           const selected = option.value === value
@@ -29,10 +29,10 @@ export function ChoiceGroup<T extends string>({ label, options, value, onChange 
               role="radio"
               aria-checked={selected}
               onClick={() => { onChange(selected ? undefined : option.value) }}
-              className={`inline-flex min-h-12 items-center gap-1.5 rounded-full px-5 text-[0.9375rem] font-medium text-ink transition-colors ${
+              className={`inline-flex min-h-12 items-center gap-1.5 rounded-full px-5 text-base font-medium text-ink transition-all ${
                 selected
-                  ? 'border-2 border-primary-dark bg-tint'
-                  : 'border border-ink-muted bg-surface hover:bg-tint-soft'
+                  ? 'border-2 border-navy bg-mint-light shadow-card'
+                  : 'border border-ink-muted/60 bg-surface hover:border-navy hover:bg-mint-soft'
               }`}
             >
               {/* Selection is shown by an icon and a heavier border, never by colour alone. */}

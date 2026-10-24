@@ -1,13 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import type { HotspotActivity } from '../../../services/contracts'
-
-const swatchColor: Record<HotspotActivity, string> = {
-  insufficient: 'bg-activity-insufficient border-dashed',
-  low: 'bg-activity-low',
-  moderate: 'bg-activity-moderate',
-  high: 'bg-activity-high',
-}
+import { swatchColor } from './activityStyles'
 
 // Swatch + words. The swatch never carries the meaning alone, and "insufficient" is drawn dashed
 // and empty so a quiet area is never read as a "safe" (green/filled) one.

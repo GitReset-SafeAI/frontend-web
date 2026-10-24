@@ -1,6 +1,6 @@
-# SafeRoute AI — web
+# SafeStep — web
 
-Responsive web app for **SafeRoute AI**, an AI-assisted personal-safety reporting and location-based
+Responsive web app for **SafeStep**, an AI-assisted personal-safety reporting and location-based
 safety-awareness platform for girls and women who travel alone in Sri Lanka. It is the browser
 counterpart of the Expo mobile app (`GitReset-Frontend`) and shares its design tokens, service
 contracts, mock fixtures and English/Sinhala strings.
@@ -24,7 +24,7 @@ patterns stay hidden.
 3. **Integrity checks** may flag duplicates or unusual patterns (a signal, never proof).
 4. **Area summaries** show privacy-protected counts per area, never descriptions or exact locations.
 
-SafeRoute AI does not track people, guarantee that any place is safe, or alert anyone on SOS (it places
+SafeStep does not track people, guarantee that any place is safe, or alert anyone on SOS (it places
 a call from the user's phone).
 
 ## Pages
@@ -40,6 +40,14 @@ a call from the user's phone).
 Responsive behaviour: phones get a bottom tab bar and sticky step actions; ≥768 px gets a top nav; the
 safety page shows map and list together at ≥1024 px. An SOS pill is in every header outside the emergency
 page.
+
+## Brand and design
+
+The look is "wayfinding, with warmth": a serif/sans pairing, a winding road with a pin, the report shown as a
+ticket, and routes with stops. 
+The palette (navy `#133148`, mint `#8CC1B2`, coral `#E9736B`, off-white `#FEFCF7`) comes from the SafeStep
+logo. Colour roles, measured contrast ratios, the logo assets and how Nielsen's heuristics map to the UI are
+in [`design.md`](design.md). Tokens live in `src/styles/index.css`.
 
 ## Getting started
 
@@ -83,7 +91,7 @@ src/
 ## Plugging in the map
 
 Edit `src/features/safety/components/HotspotMapSlot.tsx`. Keep the `HotspotMapSlotProps` contract
-(`hotspots`, `selectedId`, `onSelect`, `onDeselect`) and the rules in its doc comment: purple activity
+(`hotspots`, `selectedId`, `onSelect`, `onDeselect`) and the rules in its doc comment: navy activity
 ramp (never red/green), dashed/empty "not enough data", `{ latitude, longitude }` order, and the list as the
 text alternative.
 
@@ -124,5 +132,5 @@ immediately.
 
 ## Third-party
 
-React, React Router, TanStack Query, Zod, i18next, Tailwind CSS, Vite, Lucide icons, Vitest and Testing
+React, React Router, TanStack Query, Zod, i18next, Tailwind CSS, Vite, Lucide icons, Fontsource (Fraunces, Figtree, Noto Serif/Sans Sinhala and Tamil, all SIL OFL), Vitest and Testing
 Library (see `package.json`). Add a project `LICENSE` before publishing the repository.
