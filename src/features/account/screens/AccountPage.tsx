@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router-dom'
 
 import { ApiError } from '../../../services/api/ApiError'
+import { contactsAvailable } from '../../../services'
 import type { ContactInput, EmergencyContact } from '../../../services/contracts'
 import { MAX_CONTACTS } from '../../../services/contracts/account'
 import { Button } from '../../../shared/components/Button'
@@ -24,6 +25,7 @@ export function AccountPage() {
   const [editing, setEditing] = useState<EmergencyContact | 'new' | null>(null)
   const [removing, setRemoving] = useState<EmergencyContact | null>(null)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState(false)
 
   if (status === 'loading') return <Spinner label={t('account.loading')} />
   if (!user) return <Navigate to="/login" replace state={{ from: '/account' }} />
@@ -56,8 +58,16 @@ export function AccountPage() {
   }
 
   const doLogOut = async () => {
+    if (loggingOut) return
     setLoggingOut(true)
-    await logOut()
+    setLogoutError(false)
+    try {
+      await logOut()
+    } catch {
+      setLogoutError(true)
+    } finally {
+      setLoggingOut(false)
+    }
   }
 
   return (
@@ -67,7 +77,7 @@ export function AccountPage() {
           <h1 className="display-lg">{t('account.hello', { name: user.name })}</h1>
         </header>
 
-        <section aria-labelledby="contacts-heading" className="flex flex-col gap-5">
+        {!contactsAvailable ? <InfoNote text={t('contacts.unavailable')} /> : <section aria-labelledby="contacts-heading" className="flex flex-col gap-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-1">
               <h2 id="contacts-heading" className="text-3xl">{t('contacts.title')}</h2>
@@ -115,7 +125,9 @@ export function AccountPage() {
             <InfoNote text={t('contacts.privacy')} />
             <p className="m-0 text-sm text-ink-muted">{t('contacts.demoStorage')}</p>
           </div>
-        </section>
+        </section>}
+
+        {logoutError ? <InfoNote tone="error" text={t('account.logoutError')} /> : null}
 
         {/* Logging out is rare and easy to regret, so it sits at the end, apart from the contacts. */}
         <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">

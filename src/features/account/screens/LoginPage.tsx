@@ -1,11 +1,10 @@
 import { Contact, FlaskConical, Lock, PhoneCall } from 'lucide-react'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { DEMO_EMAIL } from '../../../config/demo'
 import { env } from '../../../config/env'
-import { ApiError } from '../../../services/api/ApiError'
 import { logInInputSchema, signUpInputSchema } from '../../../services/contracts/account'
 import { AsidePanel } from '../../../shared/components/AsidePanel'
 import { Button } from '../../../shared/components/Button'
@@ -13,6 +12,8 @@ import { Field } from '../../../shared/components/Field'
 import { InfoNote } from '../../../shared/components/InfoNote'
 import { MAX_CONTACTS } from '../../../services/contracts/account'
 import { useAuth } from '../authContext'
+import { authErrorKey } from '../authErrorKey'
+import { safeReturnTo } from '../safeReturnTo'
 
 type Mode = 'login' | 'signup'
 type FieldErrors = Partial<Record<'name' | 'email' | 'password', string>>
@@ -22,16 +23,15 @@ const tabClass = (active: boolean) =>
     active ? 'bg-surface text-navy shadow-card' : 'text-ink-muted hover:text-navy'
   }`
 
-// Sign-in is a demo until the backend exists (see the note on the page): the service boundary is real, the
-// security is not. It is labelled as such so nobody mistakes it for the real thing.
 export function LoginPage() {
   const { t } = useTranslation('account')
-  const { user, status, logIn, signUp } = useAuth()
+  const { user, status, error: authError, logIn, signUp } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [params, setParams] = useSearchParams()
-  const mode: Mode = params.get('mode') === 'signup' ? 'signup' : 'login'
-  const from = typeof (location.state as { from?: unknown } | null)?.from === 'string' ? (location.state as { from: string }).from : undefined
+  const isDemo = env.authMode === 'demo'
+  const mode: Mode = isDemo && params.get('mode') === 'signup' ? 'signup' : 'login'
+  const from = safeReturnTo((location.state as { from?: unknown } | null)?.from)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -39,11 +39,15 @@ export function LoginPage() {
   const [errors, setErrors] = useState<FieldErrors>({})
   const [formError, setFormError] = useState<string | undefined>()
   const [pending, setPending] = useState(false)
+  const submitting = useRef(false)
+  const busy = pending || status === 'loading'
+  const configurationError = authError?.kind === 'configuration'
 
   // Already signed in: nothing to do here.
   if (status === 'ready' && user && !pending) return <Navigate to={from ?? '/account'} replace />
 
   const switchMode = (next: Mode) => {
+    if (busy) return
     setErrors({})
     setFormError(undefined)
     setParams(next === 'signup' ? { mode: 'signup' } : {}, { replace: true, state: location.state })
@@ -51,6 +55,7 @@ export function LoginPage() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (busy || submitting.current || configurationError) return
     setFormError(undefined)
 
     const parsed = mode === 'signup'
@@ -70,6 +75,7 @@ export function LoginPage() {
     setErrors({})
 
     setPending(true)
+    submitting.current = true
     try {
       if (mode === 'signup') await signUp(signUpInputSchema.parse({ name, email, password }))
       else await logIn(logInInputSchema.parse({ email, password }))
@@ -77,24 +83,29 @@ export function LoginPage() {
       // account is for. Logging in returns you to where you were.
       void navigate(mode === 'signup' ? '/account' : (from ?? '/'), { replace: true })
     } catch (error) {
-      const kind = error instanceof ApiError ? error.kind : 'unknown'
-      setFormError(t(kind === 'not-found' ? 'auth.errors.notFound' : kind === 'conflict' ? 'auth.errors.conflict' : 'auth.errors.generic'))
+      setFormError(t(authErrorKey(error)))
       setPending(false)
+    } finally {
+      submitting.current = false
     }
   }
 
   // One click into the ready-made demo account (mock mode only). It goes back to where you were, or to the
   // account page, where the sample contacts are.
   const signInToDemo = async () => {
+    if (!isDemo || busy || submitting.current) return
     setErrors({})
     setFormError(undefined)
     setPending(true)
+    submitting.current = true
     try {
       await logIn({ email: DEMO_EMAIL, password: 'demo' })
       void navigate(from ?? '/account', { replace: true })
     } catch {
       setFormError(t('auth.errors.generic'))
       setPending(false)
+    } finally {
+      submitting.current = false
     }
   }
 
@@ -103,26 +114,27 @@ export function LoginPage() {
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="rounded-lg lg:border lg:border-line/70 lg:bg-surface lg:p-10 lg:shadow-card">
           <div className="mx-auto flex max-w-lg flex-col gap-6 lg:mx-0">
-            <div role="tablist" aria-label={t('auth.tabsA11y')} className="flex gap-1 rounded-full bg-mint-soft p-1">
-              <button type="button" role="tab" aria-selected={mode === 'login'} className={tabClass(mode === 'login')} onClick={() => { switchMode('login') }}>
+            {isDemo ? <div role="tablist" aria-label={t('auth.tabsA11y')} className="flex gap-1 rounded-full bg-mint-soft p-1">
+              <button type="button" role="tab" disabled={busy} aria-selected={mode === 'login'} className={tabClass(mode === 'login')} onClick={() => { switchMode('login') }}>
                 {t('auth.loginTab')}
               </button>
-              <button type="button" role="tab" aria-selected={mode === 'signup'} className={tabClass(mode === 'signup')} onClick={() => { switchMode('signup') }}>
+              <button type="button" role="tab" disabled={busy} aria-selected={mode === 'signup'} className={tabClass(mode === 'signup')} onClick={() => { switchMode('signup') }}>
                 {t('auth.signupTab')}
               </button>
-            </div>
+            </div> : null}
 
             <div className="flex flex-col gap-3">
               <h1 className="display-lg">{mode === 'signup' ? t('auth.signupTitle') : t('auth.loginTitle')}</h1>
-              <p className="m-0 text-lg text-ink-muted">{mode === 'signup' ? t('auth.signupSubtitle') : t('auth.loginSubtitle')}</p>
+              <p className="m-0 text-lg text-ink-muted">{mode === 'signup' ? t('auth.signupSubtitle') : t(isDemo ? 'auth.loginSubtitle' : 'auth.realLoginSubtitle')}</p>
             </div>
 
             <form onSubmit={(event) => { void submit(event) }} noValidate className="flex flex-col gap-5">
               {mode === 'signup' ? (
-                <Field label={t('auth.name')} value={name} onChange={(e) => { setName(e.target.value) }} error={errors.name} autoComplete="name" maxLength={60} />
+                <Field disabled={busy} label={t('auth.name')} value={name} onChange={(e) => { setName(e.target.value) }} error={errors.name} autoComplete="name" maxLength={60} />
               ) : null}
               <Field
                 label={t('auth.email')}
+                disabled={busy || configurationError}
                 type="email"
                 inputMode="email"
                 value={email}
@@ -132,6 +144,7 @@ export function LoginPage() {
               />
               <Field
                 label={t('auth.password')}
+                disabled={busy || configurationError}
                 type="password"
                 hint={mode === 'signup' ? t('auth.passwordHint') : undefined}
                 value={password}
@@ -140,10 +153,11 @@ export function LoginPage() {
                 autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               />
               {formError ? <InfoNote tone="error" text={formError} /> : null}
-              <Button type="submit" loading={pending}>{mode === 'signup' ? t('auth.signupSubmit') : t('auth.loginSubmit')}</Button>
+              {authError && !formError ? <InfoNote tone="error" text={t(authErrorKey(authError))} /> : null}
+              <Button type="submit" loading={busy} disabled={configurationError}>{mode === 'signup' ? t('auth.signupSubmit') : t('auth.loginSubmit')}</Button>
             </form>
 
-            {env.dataMode === 'mock' ? (
+            {isDemo ? (
               <div className="flex flex-col gap-3 rounded-lg border-2 border-dashed border-ink-muted/50 p-5">
                 <h2 className="flex items-center gap-2 font-sans text-lg font-bold tracking-normal">
                   <FlaskConical className="size-5" aria-hidden />
@@ -151,11 +165,11 @@ export function LoginPage() {
                 </h2>
                 <p className="m-0 text-ink-muted">{t('auth.demoAccount.body')}</p>
                 <p className="m-0 text-sm font-semibold tabular-nums">{DEMO_EMAIL}</p>
-                <Button variant="tonal" loading={pending} onClick={() => { void signInToDemo() }}>{t('auth.demoAccount.button')}</Button>
+                <Button variant="tonal" loading={busy} onClick={() => { void signInToDemo() }}>{t('auth.demoAccount.button')}</Button>
               </div>
             ) : null}
 
-            <InfoNote text={t('auth.demoNote')} />
+            {isDemo ? <InfoNote text={t('auth.demoNote')} /> : null}
           </div>
         </div>
 

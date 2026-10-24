@@ -13,6 +13,7 @@ export const apiServices: AppServices = {
   },
   hotspots: { listHotspots: notAgreed('hotspot') },
   auth: {
+    subscribe() { return () => undefined },
     getSession: notAgreed('authentication'),
     signUp: notAgreed('authentication'),
     logIn: notAgreed('authentication'),

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { env } from '../../../config/env'
-import { services } from '../../../services'
+import { contactsAvailable, services } from '../../../services'
 import type { ContactInput } from '../../../services/contracts'
 import { queryKeys } from '../../../services/queryKeys'
 import { useAuth } from '../authContext'
@@ -15,7 +15,7 @@ export function useContacts() {
   return useQuery({
     queryKey: [...queryKeys.contacts, user?.id],
     queryFn: () => services.contacts.list(),
-    enabled: Boolean(user),
+    enabled: Boolean(user) && contactsAvailable,
     networkMode,
   })
 }
