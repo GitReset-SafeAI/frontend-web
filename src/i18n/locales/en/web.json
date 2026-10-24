@@ -1,0 +1,82 @@
+{
+  "skipToContent": "Skip to content",
+  "mainNav": "Main navigation",
+  "emergencyNav": "Emergency",
+  "landing": {
+    "badge": "Community safety reporting for Sri Lanka",
+    "title": "Know what has been reported before you go.",
+    "subtitle": "SafeRoute AI helps girls and women who travel alone share safety incidents and see where reports are gathering. AI turns each report into clear, structured information and always shows its limits.",
+    "ctaReport": "Report an incident",
+    "ctaMap": "Explore the safety map",
+    "previewTitle": "What an AI estimate looks like",
+    "previewNote": "Sample only · not a real report",
+    "previewWords": "A man on the bus kept staring at me and then followed me when I got off near the station.",
+    "problemTitle": "The problem",
+    "problemBody": "It is hard to tell whether an unfamiliar road, public place or transport stop is safe. Information about incidents is scattered across social media, personal networks and informal chats, so recurring patterns stay hidden.",
+    "stepsTitle": "How it works",
+    "steps": {
+      "report": {
+        "title": "Report",
+        "body": "Write or speak what you experienced or saw. Time, place and extra details are optional."
+      },
+      "analyse": {
+        "title": "AI reads it",
+        "body": "A category, an estimate of seriousness and key details are suggested, always kept apart from your own words."
+      },
+      "check": {
+        "title": "Integrity check",
+        "body": "Reports may be checked for duplicates or unusual patterns. That is a signal, not a judgement about you."
+      },
+      "map": {
+        "title": "Area summaries",
+        "body": "Only privacy-protected area summaries reach the map, never your description or exact location."
+      }
+    },
+    "honestTitle": "Honest by design",
+    "honest": {
+      "estimate": {
+        "title": "AI gives estimates",
+        "body": "Categories and seriousness are suggestions, not verified facts. Unknown never means low."
+      },
+      "notSafe": {
+        "title": "Few reports is not safe",
+        "body": "Many reports can reflect more people or more reporting. Few reports can mean few people reported, not that an area is safe."
+      },
+      "privacy": {
+        "title": "Your words stay private",
+        "body": "The public view shows approximate areas and report counts only. Location is used only if you choose to share it."
+      },
+      "sos": {
+        "title": "SOS calls from your phone",
+        "body": "SOS places a call from your device. SafeRoute AI does not alert anyone for you."
+      }
+    },
+    "audienceTitle": "Who it is for",
+    "audience": {
+      "travellers": "Girls and women who travel alone",
+      "planners": "Anyone who wants to know what has been reported before visiting a place",
+      "contributors": "Community members who want to contribute incident reports"
+    },
+    "finalTitle": "What you know can help the next person.",
+    "finalBody": "Reporting takes about two minutes and every question after the first is optional."
+  },
+  "footer": {
+    "disclaimer": "SafeRoute AI cannot guarantee that any place or route is safe. It shows reported incidents and estimates only.",
+    "demo": "This is a demo: AI results and map data are synthetic samples.",
+    "emergency": "In an emergency: police {{police}} · ambulance {{ambulance}}"
+  },
+  "sos": {
+    "desktopHint": "On a computer? A call can only start on a phone, so dial {{number}} from your phone."
+  },
+  "map": {
+    "slotTitle": "Interactive map",
+    "slotBody": "The map is being built separately and will appear here. Area details are available in the list.",
+    "slotCount": "{{count}} areas ready to display"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you are looking for does not exist.",
+    "home": "Back to home"
+  },
+  "safetyTabShort": "Safety map"
+}

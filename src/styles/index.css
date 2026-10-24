@@ -1,10 +1,53 @@
 @import "tailwindcss";
 
+/* Brand tokens mirror the mobile app (GitReset-Frontend/src/shared/theme/tokens.ts). */
+/* Tamil and Sinhala words are wide, so display headings step down a size in those languages. */
+@custom-variant ta (&:where(:lang(ta), :lang(ta) *));
+@custom-variant si (&:where(:lang(si), :lang(si) *));
+
+@theme {
+  --color-screen: #faf7fc;
+  --color-surface: #ffffff;
+  --color-primary: #8b5ba7;
+  --color-primary-dark: #7b3fb5;
+  --color-tint: #d8ccf5;
+  --color-tint-soft: #e8ddf7;
+  --color-ink: #30243a;
+  --color-ink-muted: #6f6478;
+  --color-line: #e8e0ee;
+  --color-disabled: #b8a9c5;
+
+  --color-info: #245a89;
+  --color-success: #25633c;
+  --color-warning: #785500;
+  --color-danger: #a62532;
+  --color-danger-bg: #fce8eb;
+  --color-unknown: #535e68;
+
+  /* Red is reserved for SOS so it keeps its meaning. */
+  --color-sos: #a62532;
+  --color-sos-pressed: #851d28;
+  --color-sos-ring-inner: #f9dce0;
+  --color-sos-ring-outer: #fcedef;
+
+  /* Reported-activity ramp: light to dark purple, never red or green. */
+  --color-activity-insufficient: #ffffff;
+  --color-activity-low: #d8ccf5;
+  --color-activity-moderate: #7b3fb5;
+  --color-activity-high: #4a1f73;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Sinhala", "Iskoola Pota", "Noto Sans Tamil", "Latha", "Nirmala UI", sans-serif;
+}
+
 @layer base {
   :root {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: #171717;
-    background-color: #ffffff;
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background-color: var(--color-screen);
     color-scheme: light;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -20,11 +63,55 @@
 
   body {
     margin: 0;
-    line-height: 1.5;
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+
+  /* Sinhala and Tamil glyphs are tall; extra leading prevents clipped marks. */
+  :lang(si) body,
+  :lang(si),
+  :lang(ta) body,
+  :lang(ta) {
+    line-height: 1.85;
   }
 
   body,
   #root {
     min-height: 100svh;
+  }
+
+  h1,
+  h2,
+  h3,
+  p {
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--color-primary-dark);
+    line-height: 1.3;
+    margin: 0;
+  }
+
+  /* Visible focus for every interactive element. */
+  :focus-visible {
+    outline: 3px solid var(--color-primary-dark);
+    outline-offset: 2px;
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

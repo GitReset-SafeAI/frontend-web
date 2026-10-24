@@ -1,0 +1,42 @@
+{
+  "title": "Explore your journey",
+  "description": "The incident map and walking-route comparisons are being developed. This preview does not access your location.",
+  "estimateTitle": "Safety information has limits",
+  "estimateDescription": "AI classifications, hotspots, and route indicators will be estimates. No route can be guaranteed safe.",
+  "mapTitle": "Safety map",
+  "viewMap": "Map",
+  "viewList": "List",
+  "viewSwitchA11y": "Map or list view",
+  "note": "Based on community reports. This is not a guarantee of safety.",
+  "mapA11y": "Map of Sri Lanka showing areas with reported incidents. Use the list view for a text version.",
+  "loading": "Loading reported areas…",
+  "errorTitle": "We couldn't load the map data",
+  "empty": "There are no areas to show yet.",
+  "legendTitle": "Reports in an area",
+  "levels": {
+    "insufficient": "Not enough data",
+    "low": "Few reports",
+    "moderate": "Several reports",
+    "high": "Many reports"
+  },
+  "detail": {
+    "reports_one": "{{count}} report in the last {{days}} days",
+    "reports_other": "{{count}} reports in the last {{days}} days",
+    "lastReport_one": "Most recent: {{count}} day ago",
+    "lastReport_other": "Most recent: {{count}} days ago",
+    "lastReportToday": "Most recent: today",
+    "topCategories": "Most reported",
+    "confidence": "Data quality: {{level}}",
+    "confidenceLevels": {
+      "limited": "limited",
+      "moderate": "moderate",
+      "good": "good"
+    },
+    "caveatInsufficient": "Too few reports to show a pattern. This does not mean the area is safe.",
+    "caveat": "Many reports can partly reflect more people or more reporting, and few reports does not mean an area is safe.",
+    "close": "Close area details",
+    "areaA11y": "{{area}}, {{level}}",
+    "show": "Show on map",
+    "selected": "Selected"
+  }
+}

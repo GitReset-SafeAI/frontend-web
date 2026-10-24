@@ -1,10 +1,10 @@
-import { AppLayout } from '../components/layout/AppLayout'
-import { FoundationPage } from '../pages/FoundationPage'
+import { AppProviders } from './AppProviders'
+import { AppRoutes } from './AppRoutes'
 
 export default function App() {
   return (
-    <AppLayout>
-      <FoundationPage />
-    </AppLayout>
+    <AppProviders>
+      <AppRoutes />
+    </AppProviders>
   )
 }

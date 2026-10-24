@@ -1,0 +1,23 @@
+{
+  "homeCaption": "හදිසි උදව් සඳහා ඔබන්න",
+  "homeHint": "තත්පර {{seconds}} ක ගණනය කිරීමකට පසු {{number}} අමතයි. ඔබට අවලංගු කළ හැක.",
+  "sosLabel": "SOS",
+  "sosA11yLabel": "SOS. හදිසි උදව්",
+  "sosA11yHint": "තත්පර {{seconds}} ක ගණනය කිරීමක් ආරම්භ කර, පසුව {{number}} අමතයි. ඔබට අවලංගු කළ හැක.",
+  "countdownTitle": "පොලිසිය ({{number}}) අමතන තෙක් ඉතිරි",
+  "secondsLabel_one": "තත්පරය",
+  "secondsLabel_other": "තත්පර",
+  "announceStart": "තත්පර {{seconds}}කින් {{number}} අමතයි. නැවැත්වීමට අවලංගු කරන්න ඔබන්න.",
+  "callNow": "දැන් අමතන්න",
+  "cancel": "අවලංගු කරන්න",
+  "callAmbulance": "ගිලන් රථයක් අවශ්‍යද? {{number}} අමතන්න",
+  "disclaimer": "SafeRoute AI ඔබ වෙනුවෙන් කිසිවෙකුට දැනුම් නොදෙයි. මෙය ඔබේ දුරකථනයෙන් ඇමතුමක් ගනී.",
+  "dialingTitle": "ඔබේ දුරකථනය විවෘත කරමින්…",
+  "calledTitle": "හදිසි ඇමතුම ආරම්භ විය",
+  "calledBody": "ඇමතුම සම්බන්ධ නොවුණේ නම් නැවත උත්සාහ කරන්න.",
+  "callPoliceAgain": "පොලිසිය ({{number}}) නැවත අමතන්න",
+  "callAmbulanceAgain": "ගිලන් රථය ({{number}}) අමතන්න",
+  "close": "වසන්න",
+  "failedTitle": "දුරකථනය විවෘත කළ නොහැකි විය",
+  "failedBody": "කරුණාකර දැන් ඔබේ දුරකථනයෙන් {{number}} අමතන්න."
+}
