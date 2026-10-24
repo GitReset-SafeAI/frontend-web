@@ -1,325 +1,204 @@
-# SafeStep — web
+# SafeStep — Web Platform
 
-## Database incident map
+**SafeStep** is an AI-assisted safety-reporting and safety-awareness web platform for girls and women who travel alone in Sri Lanka. People report incidents in **English, සිංහල or தமிழ்** (or a mix), and the platform turns those reports into privacy-protected, aggregated areas on a map, with a journey planner that compares routes by how close they pass to reported areas.
 
-Journey place search follows `VITE_SAFETY_MAP_MODE` as well: a live map searches the backend's
-`/api/v1/safety-map/places` endpoint even while accounts or reports use demo mode. If live geocoding
-fails, the search identifies the outage, offers a retry, and lists matching saved public landmarks
-from the existing local directory. This limited directory is not a full address search. Selecting
-a suggestion sets its coordinates; editing a selected name clears those coordinates until another
-suggestion is chosen. Arrow keys and Enter select a result; Escape or leaving the field dismisses it.
+> Built for **Hack for Humanity — Best Social Impact Web Platform** (Hacktoberfest Hack Day Colombo, organised by AI Collective Colombo with MLH). The repository history starts on 24 October 2026, the day of the hackathon.
 
-The map uses `VITE_SAFETY_MAP_MODE=api` by default, independently of the other features' demo mode.
-Vite proxies `/api` to `VITE_API_BASE_URL` (default `http://127.0.0.1:8001`) in development and preview.
-Restart Vite after changing these values. Production hosting must supply the same `/api` reverse proxy.
+This is the **main web application**. It works on phones, tablets and desktops in any modern browser.
 
-The unchanged backend reads `map_eligible_incidents`, joining `public.reports` coordinates to completed
-`incident_ai_analyses` records by `report_id`. The backend's Supabase URL and service-role credential
-must be configured there; no privileged database credentials belong in the frontend. If those backend
-settings are absent, the existing backend can serve synthetic data instead. The frontend does not fall
-back to mock incidents when a live request fails.
-
-Each published area displays its report count. Orange through dark red shows the backend's
-**severity-weighted intensity**: severity (0–10), count, confidence and recency combined and normalised
-against the strongest area in the query. This is not average severity. The legend and textual labels
-state that scores can change as the viewport or filters change. Exact report locations remain private;
-the backend publishes rounded area centres and requires at least three nearby reports per area.
-
-The initial view includes all time periods in the backend's default 30-day window. Map data refreshes
-every minute while the page is active. Set `VITE_SAFETY_MAP_MODE=mock` for an explicitly labelled offline demo.
-
-Responsive web app for **SafeStep**, an AI-assisted personal-safety reporting and location-based
-safety-awareness platform for girls and women who travel alone in Sri Lanka. It is the browser
-counterpart of the Expo mobile app (`GitReset-Frontend`) and shares its design tokens, service
-contracts, mock fixtures and English/Sinhala strings.
-
-> **Status: Supabase login, authenticated report creation, and voice transcription are connected.** Demo analysis
-> and mock-mode data use clearly labelled **mock services**. Real report analysis is triggered by the backend.
-> The interactive **map is built
-> separately**; this app ships a documented slot for it (see below).
+| Repository | Role |
+| --- | --- |
+| **[frontend-web](https://github.com/GitReset-SafeAI/frontend-web)** (this repo) | The web platform (React + Vite) |
+| [backend](https://github.com/GitReset-SafeAI/backend) | FastAPI service, AI pipeline, Supabase schema |
+| [frontend-mobile](https://github.com/GitReset-SafeAI/frontend-mobile) | Companion mobile app (Expo / React Native) |
 
 ## The problem
 
-It is hard to know whether an unfamiliar road, public place or transport stop is safe. Information
-about incidents is scattered across social media, personal networks and informal chats, so recurring
-patterns stay hidden.
+It is hard to know whether an unfamiliar road, bus stop or public place is safe for a woman travelling alone. Information about harassment is scattered across social media and private chats, most incidents are never reported, and many people write in Sinhala, Tamil or "Singlish" (Sinhala typed in English letters), which generic tools handle poorly. Recurring patterns stay hidden, and travellers cannot make informed choices.
 
 ## The solution
 
-1. **Report** an incident by writing or speaking (English, සිංහල, தமிழ், or mixed). Everything after the
-   description is optional.
-2. **AI analysis** suggests a category, an estimate of seriousness, key details and what is missing,
-   always shown separately from the user's own words and labelled an estimate.
-3. **Integrity checks** may flag duplicates or unusual patterns (a signal, never proof).
-4. **Area summaries** show privacy-protected counts per area, never descriptions or exact locations.
+1. **Report** an incident by typing or speaking, in English, Sinhala, Tamil or a mix. Only the description is required, and everything else is optional.
+2. **AI analysis (on the backend)** translates the report and classifies it: incident type, provisional severity, confidence, lighting and time of day. It always flags uncertain reports for review and is treated as an estimate, never a verdict.
+3. **See what has been reported.** The Safety Map shows aggregated areas, never individual reports or exact locations, and states that few reports does not mean an area is safe.
+4. **Plan a journey.** Search a start and destination, compare routes, and optionally follow your walk and share a live link with someone you trust.
+5. **SOS.** One large button starts a 5-second cancellable countdown, then dials the emergency contact *you* chose from your own phone. It never calls the police and never claims anyone has been alerted.
 
-SafeStep does not track people, guarantee that any place is safe, or alert anyone on SOS (it places
-a call from the user's own phone to their own emergency contact, not to the police).
+SafeStep does not track people and never claims that a place or route is safe.
 
-## Pages
+## Features
+
+Status reflects the code in this repository.
+
+| Feature | Status |
+| --- | --- |
+| Landing page explaining the problem, how it works and its honest limits | Implemented |
+| 5-step report flow: Describe, When & where, Details, Review, Submitted | Implemented |
+| Report submission to the backend with a real Supabase session | Implemented (Supabase mode) |
+| Voice input: records WAV in the browser, sends it to the backend for a transcript the user confirms | Implemented (Supabase mode); a sample transcript in demo mode |
+| Approximate location (rounded to about 1 km, only when you tap the button) or a district picker | Implemented |
+| Safety Map with Leaflet and OpenStreetMap: reported areas, severity-weighted intensity, report counts, time-of-day filter, evidence notice | Implemented (live backend data by default) |
+| Journey planner: place search, walking or driving, route comparison with explanations | Implemented |
+| Follow your journey with live location, remaining time, "you are inside a reported area" alert | Implemented |
+| Share a journey: unguessable link at `/j/:shareId`, view-only, ends when you stop or it expires | Implemented |
+| Supabase email/password login, session persistence and refresh, log out | Implemented |
+| Demo sign-in and sign-up (no password checked, local to the browser) | Implemented (demo mode) |
+| Emergency contacts (up to 5) and the SOS countdown | Implemented in **demo mode only** |
+| English, සිංහල and தமிழ் for the whole interface | Implemented |
+| Accessibility: large touch targets, measured contrast, status never by colour alone, screen-reader labels, reduced-motion support | Implemented |
+| Showing the AI estimate for a real report back to the reporter | **Not implemented**: the analysis is saved by the backend; the web app confirms the report was saved |
+
+### Pages
 
 | Route | What it is |
 | --- | --- |
-| `/` | Landing page: problem, how it works, honest limits, sample AI estimate |
-| `/report` … `/report/submitted` | Describe → When & where → Details → Review → Submitted |
-| `/safety` | Safety map: map slot + list of aggregated areas (side by side on large screens) |
-| `/emergency` | Giant SOS button, what happens when you tap, and tap-to-call links for your emergency contacts |
-| `/sos` | Full-screen 5 s cancellable countdown, then `tel:` the primary emergency contact |
-| `/login` | Supabase email/password login, or demo login/signup (see configuration below) |
-| `/account` | Your account and up to 5 emergency contacts (needs login) |
+| `/` | Landing page |
+| `/report` to `/report/submitted` | The 5-step report flow |
+| `/safety` | Safety Map and journey planner |
+| `/j/:shareId` | View a shared journey |
+| `/emergency` | SOS button and what happens when you tap it |
+| `/sos` | Full-screen countdown, then `tel:` the primary contact |
+| `/login`, `/account` | Sign in, account and emergency contacts |
 
-Responsive behaviour: phones get a bottom tab bar and sticky step actions; ≥768 px gets a top nav; the
-safety page shows map and list together at ≥1024 px. An SOS pill is in every header outside the emergency
-page.
+Phones get a bottom tab bar and sticky step actions; screens 768 px and wider get a top navigation; an SOS pill is in every header outside the emergency page.
 
-## Demo sign-in
+## AI usage
 
-Sign-in is a **demo** behind the same service layer as everything else (`src/services/mocks/accounts.ts`):
+The AI runs in the [backend](https://github.com/GitReset-SafeAI/backend); this app sends reports and shows the results.
 
-**Quickest:** run `npm run dev`, open `/login` and click **Use demo account** (or log in as `demo@safestep.lk`
-with any password). It comes with two sample contacts (placeholder numbers: add your own to test dialling).
+| Where | AI capability |
+| --- | --- |
+| Report submission | The backend translates Sinhala, Tamil, Singlish and mixed text to English and classifies it with an open-weight LLM (`openai/gpt-oss-20b` via Groq): incident type, safety concern, severity 0–10, confidence, lighting and time period. Uncertain or unreadable reports are saved as "needs review" instead of being guessed. |
+| Voice input | Recordings are sent to the backend, which transcribes them with OpenAI Whisper `whisper-large-v3` (via Groq). The transcript is a draft the user edits and confirms. Recordings are not stored. |
+| Safety Map | Reported areas come from DBSCAN clustering of the AI-analysed reports, weighted by severity, confidence and recency. |
+| Demo mode only | AI results are **simulated** by keyword heuristics in `services/mocks/fixtures/analysis.ts`, and the interface labels them as demo. |
 
-**Or make your own:**
+Responsible-AI choices in the interface: results are labelled estimates; the user's own words are shown separately; "Unknown" is never shown as "Low"; a quiet area is shown as "not enough data", not as reassuring; map intensity is also given in words and counts, never by colour alone; anomalies are signals, not accusations. In the web client the language hint for a report is a simple script-and-vocabulary check (`detectReportLanguage.ts`), not a language model, and the user can see and change it.
 
-1. On `/login` choose **Create account** and enter any name, any email and a password of 8+ characters. You land
-   on `/account`.
-2. Add an emergency contact (for example `077 123 4567`, `0771234567` or `+94 77 123 4567`; up to 5).
-3. Tap **SOS** (header) or the Emergency page: after the 5 s countdown the phone dials the first contact.
-   On a computer nothing can dial, so the page says so; test dialling on a phone (`npm run dev -- --host`).
-4. **Log in** later with the same email in the same browser. No password is read, checked or stored.
+## Technology stack
 
-Accounts and contacts are saved only in this browser's local storage (keys start with `safestep.demo.`), so they
-do not follow you across browsers and disappear in a private window. Do not enter real people's numbers.
-Clear them with `Object.keys(localStorage).filter(k => k.startsWith('safestep.demo.')).forEach(k => localStorage.removeItem(k))`.
-Demo authentication is selected by `VITE_AUTH_MODE=demo` independently of `VITE_DATA_MODE`.
-With `VITE_DATA_MODE=api`, data adapters other than report creation still fail explicitly until implemented.
-
-## Supabase email/password login
-
-The existing auth provider uses a Supabase adapter when `VITE_AUTH_MODE=supabase`.
-It supports existing-user password login, SDK-managed session persistence and refresh,
-session-change subscriptions, and local-device logout. Report creation uses the current session's access
-token as a Bearer token; the publishable key is never used as the backend Bearer token.
-Real signup, confirmation callbacks, password recovery, and OAuth are outside this phase.
-Signup and the demo login controls/notices are available only in demo auth mode.
-
-To configure locally:
-
-1. Open the Supabase dashboard and select the intended project. Do not reuse another project's configuration.
-2. Open the project's **Connect** dialog and copy its **Project URL** and **publishable key**.
-   To select a particular publishable key, use **Settings > API Keys**.
-   Official guide: https://supabase.com/docs/guides/getting-started/api-keys
-3. Create or edit `.env.local` in this repository's root (alongside `package.json`), preserving any existing
-   local settings. Replace only the placeholders below with the matching public project values.
-4. Restart `npm run dev` after saving; Vite reads these variables at startup. For deployment, set the
-   same public variables in the build environment and rebuild.
-5. Open `/login` and use an existing email/password account. Its email must be confirmed if the project
-   requires confirmation. Live login has not been verified by the mocked tests.
-
-```dotenv
-VITE_AUTH_MODE=supabase
-VITE_DATA_MODE=mock
-VITE_API_BASE_URL=http://127.0.0.1:8000
-VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
-```
-
-The client accepts public publishable keys (`sb_publishable_...`) only. Never put a secret or service-role
-key into any `VITE_` variable: those values are exposed to the browser. `.env.local` is ignored by Git;
-`.env.example` contains placeholders only. Missing/invalid public configuration displays a clear login
-configuration error and never falls back to demo authentication.
-
-Auth and data modes are independent. Supabase auth selects real report creation even with mock data mode.
-Voice transcription also uses the authenticated backend in Supabase mode. Safety-map and other unrelated
-features retain their existing data-mode selection. Demo auth with mock data continues to use local
-synthetic reports and sample transcripts without microphone access. No global mode or local credential
-file is changed automatically.
-Emergency contacts, contact mutations, and SOS contact calling are explicitly unavailable for real users
-until contact persistence and authorization are implemented. A real user never reads or writes the local
-demo account's contact data. Existing demo accounts and contacts remain isolated and usable in demo mode.
-
-Tests force demo/mock configuration by default. Supabase tests mock the SDK and public configuration;
-they do not create accounts or make live authentication requests.
-
-## Brand and design
-
-The look is "wayfinding, with warmth": a serif/sans pairing, a winding road with a pin, the report shown as a
-ticket, and routes with stops. 
-The palette (navy `#133148`, mint `#8CC1B2`, coral `#E9736B`, off-white `#FEFCF7`) comes from the SafeStep
-logo. Colour roles, measured contrast ratios, the logo assets and how Nielsen's heuristics map to the UI are
-in [`design.md`](design.md). Tokens live in `src/styles/index.css`.
+| Layer | Technology |
+| --- | --- |
+| UI | React 19, TypeScript, Vite, React Router |
+| Styling | Tailwind CSS v4, custom brand tokens, Fontsource (Fraunces, Figtree, Noto Serif / Sans Sinhala and Tamil) |
+| Data and validation | TanStack Query, Zod (every API response is validated) |
+| Maps | Leaflet, react-leaflet, OpenStreetMap tiles |
+| Auth | Supabase (`@supabase/supabase-js`) |
+| i18n | i18next, react-i18next (en, si, ta) |
+| Icons | Lucide |
+| Tests and checks | Vitest, Testing Library, jsdom, Oxlint, TypeScript |
+| Backend (separate repo) | FastAPI, Supabase, Groq (`gpt-oss-20b`, Whisper) |
 
 ## Getting started
 
-Node.js 22.12+ (validated with Node 24) and npm.
+Requires Node.js 22.12+ (validated on Node 24) and npm.
 
 ```sh
 npm ci
 npm run dev        # http://localhost:5173
 ```
 
+**It runs with no keys.** With the defaults, accounts, reports and AI analysis are demo services that work entirely in the browser. The Safety Map defaults to the live backend (`VITE_SAFETY_MAP_MODE=api`), so to see it, either run the [backend](https://github.com/GitReset-SafeAI/backend) (it serves synthetic map data without credentials) or set `VITE_SAFETY_MAP_MODE=mock` for a clearly labelled offline map.
+
+### Connecting the backend
+
+Vite proxies `/api` to the backend origin, in development and in `npm run preview`. A deployed build needs the same `/api` reverse proxy, because the backend only enables CORS in development.
+
+```dotenv
+# .env.local  (restart Vite after changing)
+VITE_API_BASE_URL=http://127.0.0.1:8000     # the backend origin
+VITE_SAFETY_MAP_MODE=api                     # api | mock
+VITE_DATA_MODE=mock                          # mock | api
+VITE_AUTH_MODE=demo                          # demo | supabase
+```
+
+Start the backend with `uvicorn app.main:app --reload` (default port 8000; `.env.example` assumes 8001, so set `VITE_API_BASE_URL` to match the port you use).
+
+### Real accounts and real reports (Supabase mode)
+
+```dotenv
+VITE_AUTH_MODE=supabase
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+With `VITE_AUTH_MODE=supabase`, login uses the Supabase project, and report creation and voice transcription go to the backend with the user's access token as a Bearer token. The backend must have its own Supabase and Groq credentials configured. The publishable key is never used as a backend token.
+
+- Find the URL and publishable key in the Supabase dashboard under **Connect** or **Settings > API Keys**.
+- The client accepts public publishable keys (`sb_publishable_...`) only. **Never put a secret or service-role key in any `VITE_` variable**, because those values are shipped to the browser.
+- `.env.local` is ignored by Git, and `.env.example` holds placeholders only.
+- Sign-up, confirmation callbacks, password recovery and OAuth are not implemented; use an existing confirmed account.
+
+### Demo sign-in
+
+With `VITE_AUTH_MODE=demo` (the default) you can open `/login` and choose **Use demo account** (or log in as `demo@safestep.lk` with any password), or create an account with any name, email and 8+ character password. No password is read, checked or stored. The demo account has two sample contacts with placeholder numbers; add your own to test dialling, and do not enter real people's numbers. Accounts and contacts live only in this browser's local storage under keys starting `safestep.demo.`.
+
+On a computer, SOS cannot place a call and says so. Test dialling on a phone with `npm run dev -- --host`.
+
+### Commands
+
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Dev server with hot reload |
 | `npm run build` | Type-check and build into `dist/` |
 | `npm run preview` | Serve the production build |
-| `npm run lint` | Oxlint (React hooks rules) |
+| `npm run lint` | Oxlint |
 | `npm run typecheck` | Type-check app and tooling |
-| `npm test` | Vitest + Testing Library (report flow, SOS, safety list, i18n, language switching, a11y behaviours) |
-| `npm run check` | typecheck + lint + tests |
+| `npm test` | Vitest and Testing Library |
+| `npm run check` | Type-check, lint and tests |
 
-Configuration names and placeholders are in `.env.example`. Demo auth needs no keys;
-Supabase auth requires the public URL and publishable key in `.env.local` as described above.
+The tests force demo configuration, mock the Supabase SDK, and make no live network requests. They cover the report API, auth, account and contacts, phone numbers, place search and the map's intensity display.
 
 ## Project structure
 
 ```text
 src/
-  app/            providers, routes, scroll/focus reset
-  config/         validated public env
+  app/            providers, routes, scroll reset
+  config/         validated public environment
   features/
-    landing/      landing + 404
-    emergency/    SOS button, emergency page, countdown page, numbers
-    reporting/    draft context, 5 step screens, voice + district dialogs, location hook
-    incident-ai/  AnalysisSummary (estimate UI) + shared category labels
-    safety/       list, activity badges, HotspotMapSlot (map integration point)
-  i18n/           i18next setup; locales/{en,si,ta}/*.json (web.json is web-only)
-  services/       contracts (zod), auth adapters/client, mocks, api stub, query client/keys
-  shared/         Button, ChoiceGroup, Dialog, InfoNote…, AppShell, StepLayout
-  styles/         Tailwind v4 + brand tokens (@theme)
+    landing/      landing page and 404
+    reporting/    report draft, 5 steps, voice recorder, district picker, location
+    incident-ai/  estimate ticket and category labels
+    safety/       map, journey planner, live journey, shared journey, time filter
+    emergency/    SOS button, emergency page, countdown
+    account/      login, account, emergency contacts
+  i18n/           locales/{en,si,ta}
+  services/       Zod contracts, API client and adapters, auth, demo mocks
+  shared/         buttons, dialogs, layout
+  styles/         Tailwind and brand tokens
 ```
 
-## Plugging in the map
+Only `src/services/` talks to data. Mock and API implementations share the same typed contracts, so screens do not know which is in use. In API mode, any adapter without an agreed backend contract fails explicitly and never falls back to fake data.
 
-Edit `src/features/safety/components/HotspotMapSlot.tsx`. Keep the `HotspotMapSlotProps` contract
-(`hotspots`, `selectedId`, `onSelect`, `onDeselect`) and the rules in its doc comment: navy activity
-ramp (never red/green), dashed/empty "not enough data", `{ latitude, longitude }` order, and the list as the
-text alternative.
+Design notes, colour roles with measured contrast ratios, and how Nielsen's heuristics map to the UI are in [design.md](design.md).
 
-## Connecting the backend
+## Privacy and safety
 
-### Browser voice recording
+- Reports are private; public views show only aggregated areas and counts.
+- Location is requested only when you tap "Use my current location" and is rounded to about 1 km immediately. Exact coordinates are never kept.
+- Report drafts live in memory and are cleared when you finish. Nothing about a report is kept in the URL, local storage or the query cache. The only persisted preference is the interface language (and demo accounts in demo mode).
+- Live journey positions are sent to the backend only while you share, at most every 10 seconds, and are deleted when you end the journey.
+- No secrets are in this repository or shipped to the browser.
+- SOS places a call from your own phone to your own contact. SafeStep does not contact anyone for you.
+- Use fictional data when testing.
 
-In Supabase mode, **Speak instead** opens the microphone flow. Log in, allow microphone access, record,
-then choose **Stop recording** and **Transcribe recording**. Recording stops locally at 60 seconds but
-never uploads automatically. AudioWorklet captures mono PCM; a small local encoder produces a complete
-16-bit RIFF/WAVE file at the AudioContext sample rate (8–48 kHz). This avoids unsupported WebM/Opus
-recordings and needs no client dependency or backend FFmpeg conversion. HTTPS or localhost and a
-browser with getUserMedia, AudioContext, and AudioWorklet support are required.
+## AI-assisted development disclosure
 
-Contract verified against the running OpenAPI and the backend's reporting router, schemas,
-transcription service, and `docs/api-contracts.md`:
+AI coding assistants, including Claude Code (Anthropic), were used during development, together with the AI services described above in the running product. The team set the requirements and design decisions, and reviewed, tested and can explain the code.
 
-- `POST /api/v1/reporting/transcriptions` accepts raw binary audio, not JSON or multipart.
-- This frontend sends `Content-Type: audio/wav` and the current Supabase session access token as Bearer
-  authentication, using the existing optional `VITE_API_BASE_URL` configuration.
-- The optional `language_hint` query parameter is omitted, using the backend's `unknown` default.
-  UI language is not a speech-language detector.
-- HTTP 200 returns `transcript` (nonblank, at most 5,000 characters), `requested_language_hint`, and
-  `review_required: true`. The backend also accepts AAC-in-MP4/M4A and MP3, but not WebM/Opus; this
-  frontend only generates PCM WAV. The server's upper limits are 10 MiB and 60 seconds; lower configured
-  limits are reported as an error.
+## Third-party software, data and credits
 
-The returned text is inserted into the editable report description without truncating it. The user must
-confirm the transcript before proceeding. Combined text exceeding 5,000 characters needs editing first.
-The existing final submission uses `input_method: voice` and detects language from the final edited text.
-Transcription never creates a report or calls manual analysis. Report submission remains an explicit,
-separate action. Errors retain the recording in memory for manual retry or re-recording. Closing the
-dialog stops microphone tracks, cancels an in-flight upload, and releases the recording; it is not stored
-in local storage or logged. Neither recording nor upload is automatically retried.
+- React, React Router, TanStack Query, Zod, i18next, Tailwind CSS, Vite, Vitest, Testing Library, Oxlint, Lucide icons, `@supabase/supabase-js` (all open source; see `package.json`).
+- [Leaflet](https://leafletjs.com) and react-leaflet for maps.
+- Map tiles and data: [OpenStreetMap](https://www.openstreetmap.org/copyright), © OpenStreetMap contributors (ODbL). Routes use OSRM and place search uses Photon, through the backend.
+- Fonts via Fontsource, all SIL Open Font License: Fraunces, Figtree, Noto Serif / Sans Sinhala and Tamil.
+- AI models served by [Groq](https://groq.com): `openai/gpt-oss-20b` (Apache 2.0) and `whisper-large-v3` (MIT).
+- No real incident data is included; all demo and map sample data is invented.
 
-The backend must allow the frontend origin plus Authorization/Content-Type through CORS and have its
-transcription provider configured. Provider credentials belong only on the backend. No backend changes
-are needed for the PCM WAV path.
+## Team
 
-Report submissions now include `language_hint`, derived from the latest description by
-`features/reporting/detectReportLanguage.ts` when the review screen prepares its submission.
-The detector is deterministic, local, and independent of the interface language. It never changes
-the report text. Sinhala/Tamil letter counts provide script evidence; small English and Romanized
-Sinhala token sets provide conservative Latin-text hints. Substantive evidence of multiple languages
-can produce `mixed`; short, ambiguous, unsupported, or low-confidence text produces `unknown`.
-English requires stronger evidence because the backend skips translation for `en`.
-
-This prototype cannot reliably identify all Romanized Sinhala spellings, distinguish every Latin-script
-language, or resolve code-switching versus borrowed words/names. False negatives are expected.
-An `si-Latn` hint does not guarantee that the backend translator supports Romanized Sinhala.
-
-`services/api/reportRequest.ts` prepares the confirmed payload for `POST /api/v1/reports`:
-`original_text` (1–5,000 characters; whitespace-only rejected), `input_method` (`text` for typed input,
-`voice` for the voice workflow), and `language_hint`. The original description is preserved without
-trimming or translation. No `translated_text` or `user_id` is sent by the mapper.
-
-The optional time-of-day chips send `reported_time` unchanged as `morning`, `afternoon`, `evening`,
-`night`, `late_night`, or `not_sure`. Leaving the question unanswered omits it. There is no custom-time
-control; the contract validator also accepts 24-hour `HH:mm` or 12-hour clock strings such as `5 PM`
-and `5:30 PM`. The separate optional date/time input is interpreted in the device's time zone and
-serialized as timezone-aware ISO UTC in `occurred_at`. A time-of-day answer never invents a date.
-
-Lighting and current-safety selections use the exact backend enums. Approximate coordinates are
-flattened to `latitude`/`longitude`; validation requires both numbers, both null, or both omitted.
-Strict request schemas reject unsupported extra fields. The previous nearby-people question was
-not a current-safety answer and is replaced by the actual safety question without inferring a status.
-
-`reportResponseSchema` validates the flat HTTP 201 creation response with a UUID `id` and a boolean
-`RAPID_SUBMISSIONS`. That boolean is a review signal, not a finding of fraud. The persisted UUID is
-retained in the existing receipt/success flow. Demo analysis is kept separately under `demoAnalysis`;
-real creation does not require or request analysis output, and there is no analysis-status assumption.
-
-`services/api/reports.ts` posts to `${VITE_API_BASE_URL}/api/v1/reports`. The API base URL is optional in
-the incoming environment configuration and has no runtime default. For report submission or other
-API-backed features, set `VITE_API_BASE_URL=http://127.0.0.1:8000` (or your backend base URL) in your
-existing `.env.local` and restart Vite. Missing API configuration shows a configuration error when an
-API request is attempted; mock-backed features and Supabase login remain usable. The URL must
-point to the backend origin/base, without a query string, fragment, or credentials. The backend must
-allow the frontend origin and Authorization/Content-Type headers through CORS for browser requests.
-Use the latest backend deployment: an older running OpenAPI document may still lack `reported_time`.
-
-Before posting, the existing Supabase SDK restores/refreshes its session when possible. Missing/expired
-sessions and HTTP 401 responses keep the in-memory draft and offer login again with a return to review,
-including when the UI has a stale signed-in user. Validation, permission, rate-limit, and network errors
-are shown without exposing backend/request details. POST requests are never automatically retried.
-An unreadable/invalid HTTP 201 response is reported as confirmed creation with unreadable details;
-immediate resubmission is disabled to reduce accidental duplicates. Drafts still disappear on refresh.
-The frontend never calls the manual analysis endpoint. HTTP 201 confirms saved report creation only;
-automatic-analysis failures do not become frontend creation failures.
-
-Only `src/services/` talks to data. Report creation is connected through `apiServices`; remaining API
-adapters throw `not-implemented` and never silently fall back to fake data. Other backend services still
-need integration. The synthetic analysis model is demo-only.
-
-## AI usage
-
-- **In the product:** classification, severity, detail extraction and missing-information detection are
-  handled by the backend for real reports. In demo mode they are **simulated** by keyword
-  heuristics in `services/mocks/fixtures/analysis.ts` and the UI says so. Demo voice input returns a sample;
-  real voice input records PCM WAV and uses the separate authenticated transcription endpoint.
-- **Responsible-AI choices in the UI:** results are labelled estimates; the user's words stay separate;
-  "Unknown" is never shown as "Low"; few reports is never shown as safe; anomalies are not accusations.
-- **AI-assisted development (disclosure):** this web app was built with Claude Code (Anthropic) from the
-  existing mobile app and product brief. All code should be reviewed and understood by the team before
-  the demo.
-
-## Accessibility
-
-Keyboard-operable with visible focus, skip link, `lang` follows the interface language, 48 px+ targets,
-status never conveyed by colour alone, live regions for progress and errors, `prefers-reduced-motion`
-honoured, native `<dialog>` for modals. The interface is available in English, සිංහල and தமிழ் (switch in the header; the choice is remembered).
-Sinhala copy for the web-only strings and all Tamil copy are first drafts and should be reviewed by fluent
-speakers.
-
-## Privacy
-
-Draft reports live in memory only and are cleared on Done/refresh. Nothing about a report goes in the
-URL, local storage or the query cache. The interface language is persisted. Demo auth stores synthetic
-accounts/contacts locally; in Supabase mode the SDK persists its session in browser storage for restoration
-and refresh, separately from demo storage. Browser
-location is requested only when the user taps "Use my current location" and is rounded to ~1 km
-immediately.
-
-## Third-party
-
-React, React Router, TanStack Query, Zod, i18next, Tailwind CSS, Vite, Lucide icons, Fontsource (Fraunces, Figtree, Noto Serif/Sans Sinhala and Tamil, all SIL OFL), Vitest and Testing
-Library (see `package.json`).
+Nadhiya Nashath, Sathya Abeytunge, Anuki Wanniarachchi, Ravindi Fernando.
 
 ## License
 
