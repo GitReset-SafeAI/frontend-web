@@ -26,7 +26,12 @@
       "passwordRequired": "Please enter your password.",
       "notFound": "We couldn't find an account with that email. Check it, or create an account.",
       "conflict": "An account with this email already exists. Try logging in.",
-      "generic": "Something went wrong. Please try again."
+      "generic": "Something went wrong. Please try again.",
+      "configuration": "Authentication is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.local, then restart the development server. Use a public publishable key.",
+      "invalidCredentials": "The email or password is incorrect.",
+      "emailUnconfirmed": "Confirm your email before logging in.",
+      "rateLimit": "Too many login attempts. Please wait and try again.",
+      "network": "Unable to reach authentication. Check your connection and try again."
     },
     "aside": {
       "title": "Why an account?",
@@ -38,7 +43,8 @@
       "title": "Just exploring?",
       "body": "Use the demo account. It comes with two sample contacts, and any password works. Sample numbers are placeholders: add your own number to test dialling.",
       "button": "Use demo account"
-    }
+    },
+    "realLoginSubtitle": "Log in to your account with your email and password."
   },
   "account": {
     "title": "Your account",
@@ -46,7 +52,8 @@
     "logout": "Log out",
     "loggingOut": "Logging out…",
     "loading": "Loading your account…",
-    "signedInAs": "Signed in as {{email}}"
+    "signedInAs": "Signed in as {{email}}",
+    "logoutError": "Could not log out. Please try again."
   },
   "contacts": {
     "title": "Emergency contacts",
@@ -89,6 +96,7 @@
     "removeBody": "SOS will no longer call this person.",
     "removeConfirm": "Yes, remove",
     "privacy": "Contacts are only used to place a call from your phone when you use SOS. SafeStep never contacts them for you.",
-    "demoStorage": "Demo: contacts are saved only in this browser."
+    "demoStorage": "Demo: contacts are saved only in this browser.",
+    "unavailable": "Emergency contacts are not available with this authentication/data setup yet. Contact storage and SOS contact calling are not connected."
   }
 }

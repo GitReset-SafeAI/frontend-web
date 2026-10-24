@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-// Provisional UI-facing models, NOT agreed backend schemas. Authentication, token lifetime, and where
-// contacts are stored are all open backend decisions (see README). Nothing here assumes a transport.
+// UI-facing models, not backend schemas. Auth adapters own session persistence;
+// real contact storage and the FastAPI authorization contract remain unimplemented.
 
 export const MAX_CONTACTS = 5
 
@@ -29,14 +29,14 @@ export const emergencyContactSchema = contactInputSchema.extend({ id: z.string()
 export type EmergencyContact = z.infer<typeof emergencyContactSchema>
 
 export const logInInputSchema = z.object({
-  email: z.email(),
+  email: z.string().trim().pipe(z.email()),
   password: z.string().min(1),
 })
 export type LogInInput = z.infer<typeof logInInputSchema>
 
 export const signUpInputSchema = z.object({
   name: z.string().trim().min(1).max(60),
-  email: z.email(),
+  email: z.string().trim().pipe(z.email()),
   password: z.string().min(8),
 })
 export type SignUpInput = z.infer<typeof signUpInputSchema>
@@ -47,6 +47,8 @@ export interface AuthService {
   signUp(input: SignUpInput): Promise<User>
   logIn(input: LogInInput): Promise<User>
   logOut(): Promise<void>
+  // Synchronous subscription; callbacks must not await other auth operations.
+  subscribe(listener: (user: User | null) => void): () => void
 }
 
 // Contacts belong to the signed-in user. The first contact is the primary one that SOS calls.

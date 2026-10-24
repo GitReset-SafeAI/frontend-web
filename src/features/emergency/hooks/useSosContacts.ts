@@ -1,4 +1,5 @@
 import type { EmergencyContact } from '../../../services/contracts'
+import { contactsAvailable } from '../../../services'
 import { useAuth } from '../../account/authContext'
 import { useContacts } from '../../account/hooks/useContacts'
 
@@ -13,6 +14,7 @@ export function useSosContacts(): SosContacts {
   const query = useContacts()
   if (status === 'loading') return { state: 'loading', contacts: [] }
   if (!user) return { state: 'loggedOut', contacts: [] }
+  if (!contactsAvailable) return { state: 'error', contacts: [] }
   if (query.isPending) return { state: 'loading', contacts: [] }
   if (query.isError) return { state: 'error', contacts: [] }
   const [primary] = query.data

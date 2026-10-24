@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
+import { env } from '../../../config/env'
 import { ButtonLink } from '../../../shared/components/Button'
 import { InfoNote } from '../../../shared/components/InfoNote'
 
@@ -19,7 +20,7 @@ export function NoContactPrompt({ reason, returnTo, onRed = false }: NoContactPr
   const actions = reason === 'loggedOut' ? (
     <>
       <ButtonLink to="/login" state={state} variant={onRed ? 'light' : 'primary'}>{t('none.login')}</ButtonLink>
-      <ButtonLink to="/login?mode=signup" state={state} variant={onRed ? 'outlineLight' : 'secondary'}>{t('none.signup')}</ButtonLink>
+      {env.authMode === 'demo' ? <ButtonLink to="/login?mode=signup" state={state} variant={onRed ? 'outlineLight' : 'secondary'}>{t('none.signup')}</ButtonLink> : null}
     </>
   ) : (
     <ButtonLink to="/account" variant={onRed ? 'light' : 'primary'}>{t('none.add')}</ButtonLink>

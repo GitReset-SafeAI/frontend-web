@@ -7,6 +7,7 @@ import { renderApp } from './renderApp'
 type User = ReturnType<typeof userEvent.setup>
 
 async function signUp(user: User, name = 'Nimali', email = 'nimali@example.lk') {
+  await waitFor(() => { expect(screen.getByLabelText('Your name')).toBeEnabled() })
   await user.type(screen.getByLabelText('Your name'), name)
   await user.type(screen.getByLabelText('Email'), email)
   await user.type(screen.getByLabelText(/^password/i), 'password1')
@@ -46,6 +47,7 @@ describe('account', () => {
   it('does not log in to an account that does not exist', async () => {
     const user = userEvent.setup()
     renderApp('/login')
+    await waitFor(() => { expect(screen.getByLabelText('Email')).toBeEnabled() })
     await user.type(screen.getByLabelText('Email'), 'nobody@example.lk')
     await user.type(screen.getByLabelText('Password'), 'whatever')
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
@@ -182,6 +184,7 @@ describe('account', () => {
   it('also lets you type the demo email into the normal log-in form', async () => {
     const user = userEvent.setup()
     renderApp('/login')
+    await waitFor(() => { expect(screen.getByLabelText('Email')).toBeEnabled() })
     await user.type(screen.getByLabelText('Email'), 'DEMO@safestep.lk')
     await user.type(screen.getByLabelText('Password'), 'anything')
     await user.click(screen.getByRole('button', { name: /^log in$/i }))

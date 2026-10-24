@@ -5,8 +5,8 @@ safety-awareness platform for girls and women who travel alone in Sri Lanka. It 
 counterpart of the Expo mobile app (`GitReset-Frontend`) and shares its design tokens, service
 contracts, mock fixtures and English/Sinhala strings.
 
-> **Status: frontend only.** AI analysis, voice transcription and hotspot data come from clearly
-> labelled **mock services** until the FastAPI/Supabase backend exists. The interactive **map is built
+> **Status: frontend with optional Supabase login.** AI analysis, voice transcription and hotspot data come from clearly
+> labelled **mock services** until the FastAPI integration is implemented. The interactive **map is built
 > separately**; this app ships a documented slot for it (see below).
 
 ## The problem
@@ -36,14 +36,14 @@ a call from the user's own phone to their own emergency contact, not to the poli
 | `/safety` | Safety map: map slot + list of aggregated areas (side by side on large screens) |
 | `/emergency` | Giant SOS button, what happens when you tap, and tap-to-call links for your emergency contacts |
 | `/sos` | Full-screen 5 s cancellable countdown, then `tel:` the primary emergency contact |
-| `/login` | Log in or create an account (demo, see below) |
+| `/login` | Supabase email/password login, or demo login/signup (see configuration below) |
 | `/account` | Your account and up to 5 emergency contacts (needs login) |
 
 Responsive behaviour: phones get a bottom tab bar and sticky step actions; ≥768 px gets a top nav; the
 safety page shows map and list together at ≥1024 px. An SOS pill is in every header outside the emergency
 page.
 
-## Demo sign-in (until the backend exists)
+## Demo sign-in
 
 Sign-in is a **demo** behind the same service layer as everything else (`src/services/mocks/accounts.ts`):
 
@@ -62,7 +62,49 @@ with any password). It comes with two sample contacts (placeholder numbers: add 
 Accounts and contacts are saved only in this browser's local storage (keys start with `safestep.demo.`), so they
 do not follow you across browsers and disappear in a private window. Do not enter real people's numbers.
 Clear them with `Object.keys(localStorage).filter(k => k.startsWith('safestep.demo.')).forEach(k => localStorage.removeItem(k))`.
-With `VITE_DATA_MODE=api` every auth and contacts call fails explicitly until the backend contract is agreed.
+Demo authentication is selected by `VITE_AUTH_MODE=demo` independently of `VITE_DATA_MODE`.
+With `VITE_DATA_MODE=api`, data adapters still fail explicitly until their backend contracts are implemented.
+
+## Supabase email/password login
+
+The existing auth provider uses a Supabase adapter when `VITE_AUTH_MODE=supabase`.
+It supports existing-user password login, SDK-managed session persistence and refresh,
+session-change subscriptions, and local-device logout. No backend bearer-token integration is included.
+Real signup, confirmation callbacks, password recovery, and OAuth are outside this phase.
+Signup and the demo login controls/notices are available only in demo auth mode.
+
+To configure locally:
+
+1. Open the Supabase dashboard and select the intended project. Do not reuse another project's configuration.
+2. Open the project's **Connect** dialog and copy its **Project URL** and **publishable key**.
+   To select a particular publishable key, use **Settings > API Keys**.
+   Official guide: https://supabase.com/docs/guides/getting-started/api-keys
+3. Create or edit `.env.local` in this repository's root (alongside `package.json`), preserving any existing
+   local settings. Replace only the placeholders below with the matching public project values.
+4. Restart `npm run dev` after saving; Vite reads these variables at startup. For deployment, set the
+   same public variables in the build environment and rebuild.
+5. Open `/login` and use an existing email/password account. Its email must be confirmed if the project
+   requires confirmation. Live login has not been verified by the mocked tests.
+
+```dotenv
+VITE_AUTH_MODE=supabase
+VITE_DATA_MODE=mock
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
+```
+
+The client accepts public publishable keys (`sb_publishable_...`) only. Never put a secret or service-role
+key into any `VITE_` variable: those values are exposed to the browser. `.env.local` is ignored by Git;
+`.env.example` contains placeholders only. Missing/invalid public configuration displays a clear login
+configuration error and never falls back to demo authentication.
+
+Auth and data modes are independent. Reporting and hotspot mocks remain available with real auth.
+Emergency contacts, contact mutations, and SOS contact calling are explicitly unavailable for real users
+until contact persistence and authorization are implemented. A real user never reads or writes the local
+demo account's contact data. Existing demo accounts and contacts remain isolated and usable in demo mode.
+
+Tests force demo/mock configuration by default. Supabase tests mock the SDK and public configuration;
+they do not create accounts or make live authentication requests.
 
 ## Brand and design
 
@@ -91,7 +133,8 @@ npm run dev        # http://localhost:5173
 | `npm test` | Vitest + Testing Library (report flow, SOS, safety list, i18n, language switching, a11y behaviours) |
 | `npm run check` | typecheck + lint + tests |
 
-Configuration is in `.env.example` (`VITE_DATA_MODE=mock|api`). No keys or credentials are needed.
+Configuration names and placeholders are in `.env.example`. Demo auth needs no keys;
+Supabase auth requires the public URL and publishable key in `.env.local` as described above.
 
 ## Project structure
 
@@ -106,7 +149,7 @@ src/
     incident-ai/  AnalysisSummary (estimate UI) + shared category labels
     safety/       list, activity badges, HotspotMapSlot (map integration point)
   i18n/           i18next setup; locales/{en,si,ta}/*.json (web.json is web-only)
-  services/       contracts (zod), mocks, api stub, query client/keys
+  services/       contracts (zod), auth adapters/client, mocks, api stub, query client/keys
   shared/         Button, ChoiceGroup, Dialog, InfoNote…, AppShell, StepLayout
   styles/         Tailwind v4 + brand tokens (@theme)
 ```
@@ -120,8 +163,9 @@ text alternative.
 
 ## Connecting the backend
 
-Only `src/services/` talks to data. `mocks/` is the default; `api/` throws `not-implemented` for every
-call so nothing silently falls back to fake data. When the contract is agreed, implement `apiServices`
+Only `src/services/` talks to data. `mocks/` is the default for data; `api/` throws `not-implemented` for every
+data call so nothing silently falls back to fake data. Supabase auth is separate from these data adapters.
+When the contract is agreed, implement `apiServices`
 and validate responses with the zod schemas in `services/contracts/`. Open questions (vocabularies,
 thresholds, auth, idempotency, audio) are tracked in the mobile repo's `docs/contract-decisions.md`; the
 provisional contracts here are identical to the mobile ones.
@@ -149,7 +193,9 @@ speakers.
 ## Privacy
 
 Draft reports live in memory only and are cleared on Done/refresh. Nothing about a report goes in the
-URL, local storage or the query cache. The only thing persisted is the interface language. Browser
+URL, local storage or the query cache. The interface language is persisted. Demo auth stores synthetic
+accounts/contacts locally; in Supabase mode the SDK persists its session in browser storage for restoration
+and refresh, separately from demo storage. Browser
 location is requested only when the user taps "Use my current location" and is rounded to ~1 km
 immediately.
 

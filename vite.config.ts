@@ -9,5 +9,12 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Local credentials must never turn a test run into live authentication.
+    env: {
+      VITE_AUTH_MODE: 'demo',
+      VITE_DATA_MODE: 'mock',
+      VITE_SUPABASE_URL: '',
+      VITE_SUPABASE_PUBLISHABLE_KEY: '',
+    },
   },
 })

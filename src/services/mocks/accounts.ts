@@ -50,6 +50,8 @@ function createDemoAccount(): User {
 // Demo sign-in: no password is read, checked, or stored. It exists to exercise the screens and the service
 // boundary, and must never be mistaken for real authentication.
 export const mockAuth: AuthService = {
+  // Demo state changes are applied by AuthProvider's action methods.
+  subscribe() { return () => undefined },
   async getSession() {
     await wait()
     return currentUser()
