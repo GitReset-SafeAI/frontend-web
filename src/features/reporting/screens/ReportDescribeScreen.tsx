@@ -24,17 +24,19 @@ export function ReportDescribeScreen() {
   useEffect(() => { if (receipt) reset() }, [receipt, reset])
 
   const tooShort = draft.description.trim().length < DESCRIPTION_MIN_LENGTH
-  const showLengthError = attempted && tooShort
+  const tooLong = draft.description.length > DESCRIPTION_MAX_LENGTH
+  const showLengthError = tooLong || (attempted && tooShort)
   const showTranscriptError = attempted && draft.transcriptPending
 
   const onNext = () => {
     setAttempted(true)
-    if (tooShort || draft.transcriptPending) return
+    if (tooShort || tooLong || draft.transcriptPending) return
     void navigate('/report/when')
   }
 
   const onTranscript = (text: string) => {
-    const existing = draft.description.trim()
+    // Preserve the transcript and any typed content; never silently truncate either.
+    const existing = draft.description
     update({
       description: existing ? `${existing} ${text}` : text,
       inputMethod: 'voice',
@@ -68,7 +70,7 @@ export function ReportDescribeScreen() {
         <div className="flex items-start justify-between gap-4">
           {showLengthError ? (
             <p id={errorId} role="alert" className="m-0 text-sm font-medium text-danger">
-              {t('describe.error', { min: DESCRIPTION_MIN_LENGTH })}
+              {t(tooLong ? 'describe.tooLong' : 'describe.error', { min: DESCRIPTION_MIN_LENGTH, max: DESCRIPTION_MAX_LENGTH })}
             </p>
           ) : <span />}
           <p className="m-0 shrink-0 text-sm text-ink-muted">

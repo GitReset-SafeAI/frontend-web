@@ -133,8 +133,15 @@ export interface VoiceTranscript {
   text: string;
 }
 
+// Raw-audio transcription returns a reviewable draft, never a saved report.
+export const transcriptionResponseSchema = z.strictObject({
+  transcript: originalTextSchema,
+  requested_language_hint: reportLanguageHintSchema,
+  review_required: z.literal(true).default(true),
+});
+
 export interface ReportService {
   submitReport(submission: ReportSubmission): Promise<ReportReceipt>;
-  // Audio upload mechanics are an open question (see contract decisions); the mock takes no audio.
-  transcribeVoice(): Promise<VoiceTranscript>;
+  // Audio is optional only for the existing demo adapter. Real transcription requires PCM WAV.
+  transcribeVoice(audio?: Blob, signal?: AbortSignal): Promise<VoiceTranscript>;
 }

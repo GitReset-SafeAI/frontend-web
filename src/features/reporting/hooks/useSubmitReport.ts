@@ -18,7 +18,10 @@ export function useSubmitReport() {
 
 export function useTranscribeVoice() {
   return useMutation({
-    mutationFn: () => services.reports.transcribeVoice(),
-    networkMode,
+    mutationFn: (input?: { audio: Blob; signal: AbortSignal }) => services.reports.transcribeVoice(input?.audio, input?.signal),
+    // Fail visibly when offline instead of queuing a later audio upload.
+    networkMode: 'always',
+    retry: false,
+    gcTime: 0,
   })
 }

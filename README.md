@@ -5,8 +5,8 @@ safety-awareness platform for girls and women who travel alone in Sri Lanka. It 
 counterpart of the Expo mobile app (`GitReset-Frontend`) and shares its design tokens, service
 contracts, mock fixtures and English/Sinhala strings.
 
-> **Status: Supabase login and authenticated report creation are connected.** Demo analysis, voice transcription
-> and hotspot data use clearly labelled **mock services**. Real report analysis is triggered by the backend.
+> **Status: Supabase login, authenticated report creation, and voice transcription are connected.** Demo analysis
+> and mock-mode data use clearly labelled **mock services**. Real report analysis is triggered by the backend.
 > The interactive **map is built
 > separately**; this app ships a documented slot for it (see below).
 
@@ -102,8 +102,10 @@ key into any `VITE_` variable: those values are exposed to the browser. `.env.lo
 configuration error and never falls back to demo authentication.
 
 Auth and data modes are independent. Supabase auth selects real report creation even with mock data mode.
-Hotspots and voice transcription retain their existing data-mode selection. Demo auth with mock data
-continues to use local synthetic reports. No global mode or local credential file is changed automatically.
+Voice transcription also uses the authenticated backend in Supabase mode. Safety-map and other unrelated
+features retain their existing data-mode selection. Demo auth with mock data continues to use local
+synthetic reports and sample transcripts without microphone access. No global mode or local credential
+file is changed automatically.
 Emergency contacts, contact mutations, and SOS contact calling are explicitly unavailable for real users
 until contact persistence and authorization are implemented. A real user never reads or writes the local
 demo account's contact data. Existing demo accounts and contacts remain isolated and usable in demo mode.
@@ -168,6 +170,40 @@ text alternative.
 
 ## Connecting the backend
 
+### Browser voice recording
+
+In Supabase mode, **Speak instead** opens the microphone flow. Log in, allow microphone access, record,
+then choose **Stop recording** and **Transcribe recording**. Recording stops locally at 60 seconds but
+never uploads automatically. AudioWorklet captures mono PCM; a small local encoder produces a complete
+16-bit RIFF/WAVE file at the AudioContext sample rate (8–48 kHz). This avoids unsupported WebM/Opus
+recordings and needs no client dependency or backend FFmpeg conversion. HTTPS or localhost and a
+browser with getUserMedia, AudioContext, and AudioWorklet support are required.
+
+Contract verified against the running OpenAPI and the backend's reporting router, schemas,
+transcription service, and `docs/api-contracts.md`:
+
+- `POST /api/v1/reporting/transcriptions` accepts raw binary audio, not JSON or multipart.
+- This frontend sends `Content-Type: audio/wav` and the current Supabase session access token as Bearer
+  authentication, using the existing optional `VITE_API_BASE_URL` configuration.
+- The optional `language_hint` query parameter is omitted, using the backend's `unknown` default.
+  UI language is not a speech-language detector.
+- HTTP 200 returns `transcript` (nonblank, at most 5,000 characters), `requested_language_hint`, and
+  `review_required: true`. The backend also accepts AAC-in-MP4/M4A and MP3, but not WebM/Opus; this
+  frontend only generates PCM WAV. The server's upper limits are 10 MiB and 60 seconds; lower configured
+  limits are reported as an error.
+
+The returned text is inserted into the editable report description without truncating it. The user must
+confirm the transcript before proceeding. Combined text exceeding 5,000 characters needs editing first.
+The existing final submission uses `input_method: voice` and detects language from the final edited text.
+Transcription never creates a report or calls manual analysis. Report submission remains an explicit,
+separate action. Errors retain the recording in memory for manual retry or re-recording. Closing the
+dialog stops microphone tracks, cancels an in-flight upload, and releases the recording; it is not stored
+in local storage or logged. Neither recording nor upload is automatically retried.
+
+The backend must allow the frontend origin plus Authorization/Content-Type through CORS and have its
+transcription provider configured. Provider credentials belong only on the backend. No backend changes
+are needed for the PCM WAV path.
+
 Report submissions now include `language_hint`, derived from the latest description by
 `features/reporting/detectReportLanguage.ts` when the review screen prepares its submission.
 The detector is deterministic, local, and independent of the interface language. It never changes
@@ -227,8 +263,8 @@ need integration. The synthetic analysis model is demo-only.
 
 - **In the product:** classification, severity, detail extraction and missing-information detection are
   handled by the backend for real reports. In demo mode they are **simulated** by keyword
-  heuristics in `services/mocks/fixtures/analysis.ts` and the UI says so. Voice input records no audio and
-  returns a sample transcript.
+  heuristics in `services/mocks/fixtures/analysis.ts` and the UI says so. Demo voice input returns a sample;
+  real voice input records PCM WAV and uses the separate authenticated transcription endpoint.
 - **Responsible-AI choices in the UI:** results are labelled estimates; the user's words stay separate;
   "Unknown" is never shown as "Low"; few reports is never shown as safe; anomalies are not accusations.
 - **AI-assisted development (disclosure):** this web app was built with Claude Code (Anthropic) from the

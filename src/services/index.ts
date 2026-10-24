@@ -13,6 +13,7 @@ export function selectServices(mode: AppEnvironment['dataMode'], authMode: AppEn
     reports: {
       ...data.reports,
       submitReport: authMode === 'supabase' ? apiServices.reports.submitReport : data.reports.submitReport,
+      transcribeVoice: authMode === 'supabase' ? apiServices.reports.transcribeVoice : data.reports.transcribeVoice,
     },
     // Real users must never read or write contacts under an old demo session.
     // These fail explicitly until contact persistence/authorization is implemented.

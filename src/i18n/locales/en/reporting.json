@@ -17,7 +17,8 @@
     "transcriptTitle": "Check your transcript",
     "transcriptBody": "Voice transcripts can contain mistakes. Read and edit the text above before you continue.",
     "transcriptConfirm": "The transcript looks right",
-    "transcriptNeeded": "Please confirm the transcript to continue."
+    "transcriptNeeded": "Please confirm the transcript to continue.",
+    "tooLong": "Your text is over {{max}} characters. Edit it before continuing; nothing has been truncated."
   },
   "voice": {
     "title": "Voice input",
@@ -28,7 +29,35 @@
     "start": "Start",
     "stop": "Stop and transcribe",
     "error": "We couldn't transcribe that. Try again, or type instead.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "recordingNote": "Record up to {{max}} seconds. After stopping, choose Transcribe to send the audio securely to the backend. Review and edit the returned text before submitting a report. Closing this dialog discards the recording.",
+    "stopRecording": "Stop recording",
+    "transcribe": "Transcribe recording",
+    "retryTranscription": "Retry transcription",
+    "recordAgain": "Record again",
+    "states": {
+      "idle": "Ready to record.",
+      "permission": "Waiting for microphone permission…",
+      "stopping": "Preparing your recording…",
+      "ready": "Recording ready. Choose Transcribe, or record again.",
+      "transcribing": "Uploading and transcribing your recording…",
+      "error": "Recording or transcription could not be completed."
+    },
+    "errors": {
+      "unsupported": "Recording needs a supported browser with microphone and AudioWorklet access. Use HTTPS or localhost, or type your report instead.",
+      "denied": "Microphone access was denied. Allow it in your browser and device settings, then try recording again, or type instead.",
+      "device": "No available microphone was found. Check that it is connected and not blocked by another app.",
+      "empty": "The recording was empty or silent. Record again and speak near the microphone.",
+      "capture": "Recording could not be completed. Check your microphone and try again, or type instead.",
+      "tooLarge": "The backend rejected the recording size or duration. Record a shorter clip.",
+      "format": "The backend rejected the audio format. Record again, or type your report instead.",
+      "noSpeech": "The backend could not use this recording or find usable speech. Record again, or retry transcription manually.",
+      "unavailable": "Transcription is temporarily unavailable. Wait and retry manually, or type your report.",
+      "auth": "Log in to a real account before recording or retrying transcription. Logging in again discards this recording; your existing report text is preserved.",
+      "configuration": "Set VITE_API_BASE_URL and the public Supabase configuration locally, then restart the development server.",
+      "network": "Transcription could not be reached or timed out. Check your connection and retry manually while this dialog remains open.",
+      "generic": "Transcription could not be completed. Retry manually, record again, or type your report."
+    }
   },
   "when": {
     "title": "When and where?",

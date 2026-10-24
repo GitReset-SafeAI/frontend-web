@@ -377,7 +377,7 @@ describe('configuration and service isolation', () => {
     await mockServices.auth.logIn({ email: 'demo@safestep.lk', password: 'anything' })
     expect((await mockServices.contacts.list()).length).toBeGreaterThan(0)
     expect(services.reports.submitReport).toBe(apiServices.reports.submitReport)
-    expect(services.reports.transcribeVoice).toBe(mockServices.reports.transcribeVoice)
+    expect(services.reports.transcribeVoice).toBe(apiServices.reports.transcribeVoice)
     expect(services.safetyMap).toBe(mockServices.safetyMap)
     expect(services.contacts).toBe(apiServices.contacts)
     await expect(services.contacts.list()).rejects.toMatchObject({ kind: 'not-implemented' })

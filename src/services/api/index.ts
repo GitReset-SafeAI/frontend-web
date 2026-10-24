@@ -7,6 +7,7 @@ import { placeSuggestionSchema } from '../contracts/places'
 import { hotspotsResultSchema, routeComparisonResultSchema } from '../contracts/safetyMap'
 import { ApiError } from './ApiError'
 import { submitReport } from './reports'
+import { transcribeVoice } from './transcriptions'
 import { createApiClient } from './client'
 
 const client = createApiClient(env.apiBaseUrl)
@@ -30,7 +31,7 @@ function bboxParam({ bounds }: HotspotsRequest) {
 export const apiServices: AppServices = {
   reports: {
     submitReport,
-    transcribeVoice: notAgreed('transcription'),
+    transcribeVoice,
   },
   auth: {
     subscribe() { return () => undefined },
