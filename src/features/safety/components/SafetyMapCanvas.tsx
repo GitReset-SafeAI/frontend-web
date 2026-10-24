@@ -22,6 +22,7 @@ interface SafetyMapCanvasProps {
   onHotspotSelect: (hotspot: SafetyMapHotspot) => void
   onRouteSelect: (routeId: string) => void
   onBoundsChange: (bounds: BoundingBox) => void
+  onMapPick: (coordinate: Coordinate) => void
 }
 
 // How long after a programmatic fit the map's own events are ignored.
@@ -112,6 +113,17 @@ function FitToRoutes({ routes, programmatic }: { routes: Route[]; programmatic: 
   return null
 }
 
+// A tap on open map, the way a map app lets you drop a pin. Leaflet does not
+// bubble a click from an interactive vector layer (a hotspot circle, a route
+// line) up to the map, so this only fires on empty space and never steals a
+// hotspot or route selection.
+function MapClickHandler({ onPick }: { onPick: (coordinate: Coordinate) => void }) {
+  useMapEvents({
+    click: (event) => { onPick({ latitude: event.latlng.lat, longitude: event.latlng.lng }) },
+  })
+  return null
+}
+
 export function SafetyMapCanvas({
   hotspots,
   routes,
@@ -126,6 +138,7 @@ export function SafetyMapCanvas({
   onHotspotSelect,
   onRouteSelect,
   onBoundsChange,
+  onMapPick,
 }: SafetyMapCanvasProps) {
   const { t } = useTranslation('safety')
   // Shared between the fitters and the reporter, so a fit never reads as a pan.
@@ -159,6 +172,7 @@ export function SafetyMapCanvas({
         {/* Bottom right, clear of the route labels that sit mid-map. */}
         <ZoomControl position="bottomright" />
         <ViewportReporter onBoundsChange={onBoundsChange} programmatic={programmatic} />
+        <MapClickHandler onPick={onMapPick} />
         <FitToAreas hotspots={hotspots} enabled={routes.length === 0} programmatic={programmatic} />
         <FitToRoutes routes={routes} programmatic={programmatic} />
 

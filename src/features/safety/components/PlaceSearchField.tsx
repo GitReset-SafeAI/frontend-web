@@ -36,6 +36,7 @@ export function PlaceSearchField({ label, Icon, value, placeholder, testId, onSe
   const currentResult = result.key === key
   const visible = searchable && currentResult ? result.places : []
   const searching = searchable && !currentResult
+  // Keep lookup failures distinct from an empty result, even with saved landmarks.
   const failed = searchable && currentResult && result.failed
   const activePlace = visible[activeIndex]
 

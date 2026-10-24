@@ -111,13 +111,14 @@ describe('journey place search', () => {
   it('sets both journey endpoints and disables comparison again when a selected name changes', async () => {
     vi.spyOn(services.places, 'searchPlaces').mockImplementation(async ({ query }) => query === 'Colombo' ? [colombo] : [galle])
     const compare = vi.fn()
+    const focus = vi.fn()
     function Harness() {
       const [origin, setOrigin] = useState<PlannerPoint | null>(null)
       const [destination, setDestination] = useState<PlannerPoint | null>(null)
       return <I18nextProvider i18n={i18n}><JourneyPlanner origin={origin} destination={destination} isLocating={false} isComparing={false}
         onSelectPlace={(target, place) => { (target === 'origin' ? setOrigin : setDestination)({ label: place.name, coordinate: place.coordinate }) }}
         onClearPoint={(target) => { (target === 'origin' ? setOrigin : setDestination)(null) }}
-        onCompare={() => compare(origin?.coordinate, destination?.coordinate)} onSwap={() => undefined} onUseCurrentLocation={() => undefined} /></I18nextProvider>
+        onCompare={() => compare(origin?.coordinate, destination?.coordinate)} onFocusField={focus} onSwap={() => undefined} onUseCurrentLocation={() => undefined} /></I18nextProvider>
     }
     const user = userEvent.setup()
     render(<Harness />)
@@ -125,8 +126,10 @@ describe('journey place search', () => {
     const destination = screen.getByRole('combobox', { name: 'Destination' })
     const button = screen.getByRole('button', { name: 'Compare routes' })
     await user.type(start, 'Colombo')
+    expect(focus).toHaveBeenLastCalledWith('origin')
     await user.click(await screen.findByRole('option', { name: /Colombo Fort/ }))
     await user.type(destination, 'Galle')
+    expect(focus).toHaveBeenLastCalledWith('destination')
     await user.click(await screen.findByRole('option', { name: /Galle/ }))
     await user.click(button)
     expect(compare).toHaveBeenCalledWith(colombo.coordinate, galle.coordinate)
