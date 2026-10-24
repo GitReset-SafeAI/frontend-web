@@ -1,14 +1,15 @@
 import type { AppServices } from '../contracts'
 import { ApiError } from './ApiError'
+import { submitReport } from './reports'
 
-// No endpoint or authentication contract exists yet. Do not guess either.
+// Report creation is connected; other data adapters still fail explicitly.
 const notAgreed = (what: string) => async (): Promise<never> => {
   throw new ApiError('not-implemented', `The backend ${what} contract has not been agreed.`)
 }
 
 export const apiServices: AppServices = {
   reports: {
-    submitReport: notAgreed('report submission'),
+    submitReport,
     transcribeVoice: notAgreed('transcription'),
   },
   hotspots: { listHotspots: notAgreed('hotspot') },

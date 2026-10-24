@@ -5,8 +5,9 @@ safety-awareness platform for girls and women who travel alone in Sri Lanka. It 
 counterpart of the Expo mobile app (`GitReset-Frontend`) and shares its design tokens, service
 contracts, mock fixtures and English/Sinhala strings.
 
-> **Status: frontend with optional Supabase login.** AI analysis, voice transcription and hotspot data come from clearly
-> labelled **mock services** until the FastAPI integration is implemented. The interactive **map is built
+> **Status: Supabase login and authenticated report creation are connected.** Demo analysis, voice transcription
+> and hotspot data use clearly labelled **mock services**. Real report analysis is triggered by the backend.
+> The interactive **map is built
 > separately**; this app ships a documented slot for it (see below).
 
 ## The problem
@@ -63,13 +64,14 @@ Accounts and contacts are saved only in this browser's local storage (keys start
 do not follow you across browsers and disappear in a private window. Do not enter real people's numbers.
 Clear them with `Object.keys(localStorage).filter(k => k.startsWith('safestep.demo.')).forEach(k => localStorage.removeItem(k))`.
 Demo authentication is selected by `VITE_AUTH_MODE=demo` independently of `VITE_DATA_MODE`.
-With `VITE_DATA_MODE=api`, data adapters still fail explicitly until their backend contracts are implemented.
+With `VITE_DATA_MODE=api`, data adapters other than report creation still fail explicitly until implemented.
 
 ## Supabase email/password login
 
 The existing auth provider uses a Supabase adapter when `VITE_AUTH_MODE=supabase`.
 It supports existing-user password login, SDK-managed session persistence and refresh,
-session-change subscriptions, and local-device logout. No backend bearer-token integration is included.
+session-change subscriptions, and local-device logout. Report creation uses the current session's access
+token as a Bearer token; the publishable key is never used as the backend Bearer token.
 Real signup, confirmation callbacks, password recovery, and OAuth are outside this phase.
 Signup and the demo login controls/notices are available only in demo auth mode.
 
@@ -89,6 +91,7 @@ To configure locally:
 ```dotenv
 VITE_AUTH_MODE=supabase
 VITE_DATA_MODE=mock
+VITE_API_BASE_URL=http://127.0.0.1:8000
 VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
 ```
@@ -98,7 +101,9 @@ key into any `VITE_` variable: those values are exposed to the browser. `.env.lo
 `.env.example` contains placeholders only. Missing/invalid public configuration displays a clear login
 configuration error and never falls back to demo authentication.
 
-Auth and data modes are independent. Reporting and hotspot mocks remain available with real auth.
+Auth and data modes are independent. Supabase auth selects real report creation even with mock data mode.
+Hotspots and voice transcription retain their existing data-mode selection. Demo auth with mock data
+continues to use local synthetic reports. No global mode or local credential file is changed automatically.
 Emergency contacts, contact mutations, and SOS contact calling are explicitly unavailable for real users
 until contact persistence and authorization are implemented. A real user never reads or writes the local
 demo account's contact data. Existing demo accounts and contacts remain isolated and usable in demo mode.
@@ -163,17 +168,62 @@ text alternative.
 
 ## Connecting the backend
 
-Only `src/services/` talks to data. `mocks/` is the default for data; `api/` throws `not-implemented` for every
-data call so nothing silently falls back to fake data. Supabase auth is separate from these data adapters.
-When the contract is agreed, implement `apiServices`
-and validate responses with the zod schemas in `services/contracts/`. Open questions (vocabularies,
-thresholds, auth, idempotency, audio) are tracked in the mobile repo's `docs/contract-decisions.md`; the
-provisional contracts here are identical to the mobile ones.
+Report submissions now include `language_hint`, derived from the latest description by
+`features/reporting/detectReportLanguage.ts` when the review screen prepares its submission.
+The detector is deterministic, local, and independent of the interface language. It never changes
+the report text. Sinhala/Tamil letter counts provide script evidence; small English and Romanized
+Sinhala token sets provide conservative Latin-text hints. Substantive evidence of multiple languages
+can produce `mixed`; short, ambiguous, unsupported, or low-confidence text produces `unknown`.
+English requires stronger evidence because the backend skips translation for `en`.
+
+This prototype cannot reliably identify all Romanized Sinhala spellings, distinguish every Latin-script
+language, or resolve code-switching versus borrowed words/names. False negatives are expected.
+An `si-Latn` hint does not guarantee that the backend translator supports Romanized Sinhala.
+
+`services/api/reportRequest.ts` prepares the confirmed payload for `POST /api/v1/reports`:
+`original_text` (1–5,000 characters; whitespace-only rejected), `input_method` (`text` for typed input,
+`voice` for the voice workflow), and `language_hint`. The original description is preserved without
+trimming or translation. No `translated_text` or `user_id` is sent by the mapper.
+
+The optional time-of-day chips send `reported_time` unchanged as `morning`, `afternoon`, `evening`,
+`night`, `late_night`, or `not_sure`. Leaving the question unanswered omits it. There is no custom-time
+control; the contract validator also accepts 24-hour `HH:mm` or 12-hour clock strings such as `5 PM`
+and `5:30 PM`. The separate optional date/time input is interpreted in the device's time zone and
+serialized as timezone-aware ISO UTC in `occurred_at`. A time-of-day answer never invents a date.
+
+Lighting and current-safety selections use the exact backend enums. Approximate coordinates are
+flattened to `latitude`/`longitude`; validation requires both numbers, both null, or both omitted.
+Strict request schemas reject unsupported extra fields. The previous nearby-people question was
+not a current-safety answer and is replaced by the actual safety question without inferring a status.
+
+`reportResponseSchema` validates the flat HTTP 201 creation response with a UUID `id` and a boolean
+`RAPID_SUBMISSIONS`. That boolean is a review signal, not a finding of fraud. The persisted UUID is
+retained in the existing receipt/success flow. Demo analysis is kept separately under `demoAnalysis`;
+real creation does not require or request analysis output, and there is no analysis-status assumption.
+
+`services/api/reports.ts` posts to `${VITE_API_BASE_URL}/api/v1/reports`. The public base URL defaults to
+`http://127.0.0.1:8000`; set it in `.env.local` only when using another backend and restart Vite. It must
+point to the backend origin/base, without a query string, fragment, or credentials. The backend must
+allow the frontend origin and Authorization/Content-Type headers through CORS for browser requests.
+Use the latest backend deployment: an older running OpenAPI document may still lack `reported_time`.
+
+Before posting, the existing Supabase SDK restores/refreshes its session when possible. Missing/expired
+sessions and HTTP 401 responses keep the in-memory draft and offer login again with a return to review,
+including when the UI has a stale signed-in user. Validation, permission, rate-limit, and network errors
+are shown without exposing backend/request details. POST requests are never automatically retried.
+An unreadable/invalid HTTP 201 response is reported as confirmed creation with unreadable details;
+immediate resubmission is disabled to reduce accidental duplicates. Drafts still disappear on refresh.
+The frontend never calls the manual analysis endpoint. HTTP 201 confirms saved report creation only;
+automatic-analysis failures do not become frontend creation failures.
+
+Only `src/services/` talks to data. Report creation is connected through `apiServices`; remaining API
+adapters throw `not-implemented` and never silently fall back to fake data. Other backend services still
+need integration. The synthetic analysis model is demo-only.
 
 ## AI usage
 
 - **In the product:** classification, severity, detail extraction and missing-information detection are
-  intended to be done by an LLM on the backend. In this frontend they are **simulated** by keyword
+  handled by the backend for real reports. In demo mode they are **simulated** by keyword
   heuristics in `services/mocks/fixtures/analysis.ts` and the UI says so. Voice input records no audio and
   returns a sample transcript.
 - **Responsible-AI choices in the UI:** results are labelled estimates; the user's words stay separate;

@@ -11,7 +11,7 @@
     "a11yLabel": "Describe the incident",
     "placeholder": "Describe the incident in your own words",
     "counter": "{{count}} / {{max}}",
-    "error": "Please write at least {{min}} characters so we can understand what happened.",
+    "error": "Please describe what happened.",
     "voice": "Speak instead",
     "startOver": "Start over",
     "transcriptTitle": "Check your transcript",
@@ -32,14 +32,15 @@
   },
   "when": {
     "title": "When and where?",
-    "subtitle": "Approximate is fine, and both are optional.",
-    "whenLabel": "When did it happen?",
+    "subtitle": "Time, date and location are all optional.",
+    "whenLabel": "What time of day did it happen?",
     "options": {
-      "just_now": "Just now",
-      "today": "Earlier today",
-      "yesterday": "Yesterday",
-      "this_week": "This week",
-      "earlier": "Earlier / not sure"
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening",
+      "night": "Night",
+      "late_night": "Late night",
+      "not_sure": "Not sure"
     },
     "whereLabel": "Where did it happen?",
     "whereHint": "Only an approximate area is used, never your exact spot.",
@@ -52,30 +53,27 @@
     "remove": "Remove",
     "denied": "Location permission is off. You can choose a district instead.",
     "unavailable": "We couldn't get your location. You can choose a district instead.",
-    "districtTitle": "Choose a district"
+    "districtTitle": "Choose a district",
+    "occurredAt": "Date and time (optional)",
+    "occurredAtHint": "If you know the date and time, enter them separately from the time of day. Your device’s time zone is used."
   },
   "details": {
     "title": "Anything else?",
     "subtitle": "Optional. Skip anything you're not sure about.",
     "lighting": "Lighting",
     "lightingOptions": {
-      "well_lit": "Well lit",
-      "dim": "Dim",
-      "dark": "Dark",
-      "unsure": "Not sure"
+      "WELL_LIT": "Well lit",
+      "PARTIALLY_LIT": "Partially lit",
+      "POORLY_LIT_OR_DARK": "Poorly lit or dark",
+      "DAYLIGHT": "Daylight",
+      "UNKNOWN_OR_PREFER_NOT_TO_SAY": "Not sure / prefer not to say"
     },
-    "crowd": "How busy was it?",
-    "crowdOptions": {
-      "empty": "Almost empty",
-      "few": "A few people",
-      "crowded": "Crowded",
-      "unsure": "Not sure"
-    },
-    "others": "Were other people nearby?",
-    "othersOptions": {
-      "yes": "Yes",
-      "no": "No",
-      "unsure": "Not sure"
+    "currentSafety": "Are you safe now?",
+    "currentSafetyOptions": {
+      "SAFE_NOW": "Safe now",
+      "UNSURE": "Not sure",
+      "MAY_STILL_BE_IN_DANGER": "May still be in danger",
+      "PREFER_NOT_TO_SAY": "Prefer not to say"
     }
   },
   "review": {
@@ -91,7 +89,16 @@
     "submitting": "Analysing your report…",
     "errorTitle": "We couldn't submit your report",
     "errorBody": "Your report is still on this device. Please try again.",
-    "invalid": "Your description needs a little more detail before it can be submitted."
+    "invalid": "Enter a description of 1–5,000 characters (not just spaces) and check any optional date and time.",
+    "authError": "Your session is missing, expired, or was rejected. Log in again to submit. Your report draft is preserved.",
+    "forbidden": "This account is not allowed to submit the report. Your draft is preserved.",
+    "validationError": "The report fields were rejected. Review your description and optional answers; your draft is preserved.",
+    "rateLimit": "Too many report submissions. Please wait before trying again. Your draft is preserved.",
+    "networkError": "Report creation could not be confirmed. Check your connection and whether it was saved before retrying. Your draft is preserved.",
+    "configurationError": "Report submission is not configured correctly. Check VITE_API_BASE_URL and the public Supabase configuration, then restart the development server.",
+    "confirmationError": "The backend confirmed report creation, but the saved details could not be read. Do not submit again. Your text is still available here.",
+    "loginAgain": "Log in again",
+    "saving": "Saving your report…"
   },
   "submitted": {
     "title": "Report received",
@@ -99,7 +106,9 @@
     "yourWords": "Your words",
     "next": "Before a report appears on the map it may be checked for duplicates or unusual patterns. That is not a judgement about you.",
     "viewMap": "View safety map",
-    "empty": "There is no report to show."
+    "empty": "There is no report to show.",
+    "reference": "Report reference: {{id}}",
+    "saved": "Your report was saved. This confirms report creation, not the outcome of automatic AI analysis."
   },
   "districts": {
     "colombo": "Colombo",

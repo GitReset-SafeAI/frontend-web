@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-// Provisional mobile-facing models, NOT agreed FastAPI schemas. See docs/contract-decisions.md.
-// Category and severity vocabularies must be agreed by the whole team before the backend adopts them.
+// Confirmed creation contract, plus separate UI-only demo analysis models.
 
 export const incidentCategories = [
   'verbal_harassment',
@@ -22,20 +21,27 @@ export type SeverityLevel = (typeof severityLevels)[number];
 export const confidenceLevels = ['low', 'medium', 'high'] as const;
 export type ConfidenceLevel = (typeof confidenceLevels)[number];
 
-export const incidentTimes = ['just_now', 'today', 'yesterday', 'this_week', 'earlier'] as const;
-export type IncidentTime = (typeof incidentTimes)[number];
+export const reportedTimePeriods = ['morning', 'afternoon', 'evening', 'night', 'late_night', 'not_sure'] as const;
+export type ReportedTimePeriod = (typeof reportedTimePeriods)[number];
+export const reportedTimeSchema = z.union([
+  z.enum(reportedTimePeriods),
+  z.string().regex(/^(?:(?:[01]\d|2[0-3]):[0-5]\d|(?:0?[1-9]|1[0-2])(?::[0-5]\d)? (?:AM|PM))$/),
+]);
 
-export const lightingLevels = ['well_lit', 'dim', 'dark', 'unsure'] as const;
-export type LightingLevel = (typeof lightingLevels)[number];
+export const lightingConditions = ['WELL_LIT', 'PARTIALLY_LIT', 'POORLY_LIT_OR_DARK', 'DAYLIGHT', 'UNKNOWN_OR_PREFER_NOT_TO_SAY'] as const;
+export type LightingCondition = (typeof lightingConditions)[number];
+export const currentSafetyStatuses = ['SAFE_NOW', 'UNSURE', 'MAY_STILL_BE_IN_DANGER', 'PREFER_NOT_TO_SAY'] as const;
+export type CurrentSafetyStatus = (typeof currentSafetyStatuses)[number];
 
-export const crowdLevels = ['empty', 'few', 'crowded', 'unsure'] as const;
-export type CrowdLevel = (typeof crowdLevels)[number];
+export const DESCRIPTION_MIN_LENGTH = 1;
+export const DESCRIPTION_MAX_LENGTH = 5000;
+export const originalTextSchema = z.string().min(DESCRIPTION_MIN_LENGTH).max(DESCRIPTION_MAX_LENGTH)
+  .refine((text) => text.trim().length > 0, 'Describe what happened.');
+export const occurredAtSchema = z.iso.datetime({ offset: true });
 
-export const nearbyAnswers = ['yes', 'no', 'unsure'] as const;
-export type NearbyAnswer = (typeof nearbyAnswers)[number];
-
-export const DESCRIPTION_MIN_LENGTH = 10;
-export const DESCRIPTION_MAX_LENGTH = 1000;
+export const reportLanguageHints = ['si', 'si-Latn', 'en', 'ta', 'mixed', 'unknown'] as const;
+export const reportLanguageHintSchema = z.enum(reportLanguageHints);
+export type ReportLanguageHint = z.infer<typeof reportLanguageHintSchema>;
 
 // Explicit { latitude, longitude } at UI boundaries. Always approximate (rounded), never a precise point.
 export const approximateLocationSchema = z.object({
@@ -46,17 +52,59 @@ export const approximateLocationSchema = z.object({
 });
 export type ApproximateLocation = z.infer<typeof approximateLocationSchema>;
 
-// Only the description is required. Every contextual answer is optional.
-export const reportSubmissionSchema = z.object({
-  description: z.string().trim().min(DESCRIPTION_MIN_LENGTH).max(DESCRIPTION_MAX_LENGTH),
+// Local form shape. Typed input is mapped to the backend's `text` value at the boundary.
+export const reportSubmissionSchema = z.strictObject({
+  description: originalTextSchema,
   inputMethod: z.enum(['typed', 'voice']),
-  occurredWhen: z.enum(incidentTimes).optional(),
+  language_hint: reportLanguageHintSchema,
+  reported_time: reportedTimeSchema.nullable().optional(),
+  occurred_at: occurredAtSchema.nullable().optional(),
   location: approximateLocationSchema.optional(),
-  lighting: z.enum(lightingLevels).optional(),
-  crowd: z.enum(crowdLevels).optional(),
-  othersNearby: z.enum(nearbyAnswers).optional(),
+  lighting_condition: z.enum(lightingConditions).nullable().optional(),
+  current_safety_status: z.enum(currentSafetyStatuses).nullable().optional(),
 });
 export type ReportSubmission = z.infer<typeof reportSubmissionSchema>;
+
+const reportContextShape = {
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+  occurred_at: occurredAtSchema.nullable().optional(),
+  lighting_condition: z.enum(lightingConditions).nullable().optional(),
+  reported_time: reportedTimeSchema.nullable().optional(),
+  current_safety_status: z.enum(currentSafetyStatuses).nullable().optional(),
+};
+
+function coordinatesArePaired(value: { latitude?: number | null; longitude?: number | null }) {
+  return (value.latitude === undefined && value.longitude === undefined)
+    || (value.latitude === null && value.longitude === null)
+    || (typeof value.latitude === 'number' && typeof value.longitude === 'number');
+}
+const coordinateError = { message: 'Supply both coordinates together, or both null.', path: ['latitude'] };
+const reportCoreShape = {
+  original_text: originalTextSchema,
+  input_method: z.enum(['text', 'voice']),
+  language_hint: reportLanguageHintSchema,
+};
+
+// Strict requests reject removed/unsupported fields instead of silently forwarding them.
+export const reportRequestSchema = z.strictObject({
+  ...reportCoreShape,
+  ...reportContextShape,
+  translated_text: z.string().nullable().optional(),
+}).refine(coordinatesArePaired, coordinateError);
+export type ReportRequest = z.infer<typeof reportRequestSchema>;
+
+// Flat HTTP 201 body. Ignore extra server metadata; creation confirmation must
+// not depend on the presence or outcome of automatic analysis.
+export const reportResponseSchema = z.object({
+  ...reportCoreShape,
+  ...reportContextShape,
+  id: z.uuid(),
+  submitted_at: z.iso.datetime({ offset: true }),
+  translated_text: z.string().nullable(),
+  RAPID_SUBMISSIONS: z.boolean(),
+}).refine(coordinatesArePaired, coordinateError);
+export type ReportResponse = z.infer<typeof reportResponseSchema>;
 
 export const extractedDetailKinds = ['place', 'vehicle', 'behaviour'] as const;
 export const missingInformationKinds = ['time', 'location', 'people'] as const;
@@ -75,8 +123,9 @@ export const incidentAnalysisSchema = z.object({
 export type IncidentAnalysis = z.infer<typeof incidentAnalysisSchema>;
 
 export const reportReceiptSchema = z.object({
-  reportId: z.string(),
-  analysis: incidentAnalysisSchema,
+  report: reportResponseSchema,
+  // Local demo output only; never assumed to be part of the creation response.
+  demoAnalysis: incidentAnalysisSchema.optional(),
 });
 export type ReportReceipt = z.infer<typeof reportReceiptSchema>;
 

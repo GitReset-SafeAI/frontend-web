@@ -2,6 +2,7 @@ import type { AppServices } from '../contracts'
 import { mockAuth, mockContacts } from './accounts'
 import { analyseSyntheticReport, sampleTranscript } from './fixtures/analysis'
 import { sampleHotspots } from './fixtures/hotspots'
+import { toReportRequest } from '../api/reportRequest'
 
 // Simulated latency makes loading and processing states visible in demos. Tests skip it.
 const mockLatencyMs = import.meta.env.MODE === 'test' ? 0 : 1200
@@ -14,8 +15,15 @@ export const mockServices: AppServices = {
     async submitReport(submission) {
       await wait(mockLatencyMs)
       return {
-        reportId: `mock-${Date.now().toString(36)}`,
-        analysis: analyseSyntheticReport(submission),
+        report: {
+          ...toReportRequest(submission),
+          id: crypto.randomUUID(),
+          submitted_at: new Date().toISOString(),
+          translated_text: null,
+          // Synthetic demo review signal.
+          RAPID_SUBMISSIONS: false,
+        },
+        demoAnalysis: analyseSyntheticReport(submission),
       }
     },
     async transcribeVoice() {

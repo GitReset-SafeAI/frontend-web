@@ -10,7 +10,9 @@ const networkMode = env.dataMode === 'mock' ? 'always' : 'online'
 export function useSubmitReport() {
   return useMutation({
     mutationFn: (submission: ReportSubmission) => services.reports.submitReport(submission),
-    networkMode,
+    networkMode: env.authMode === 'supabase' ? 'online' : networkMode,
+    // A POST may have persisted even if its response was lost. Never auto-retry.
+    retry: false,
   })
 }
 

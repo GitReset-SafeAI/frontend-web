@@ -3,11 +3,12 @@ import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
-import { type ApproximateLocation, type IncidentTime } from '../../../services/contracts'
-import { incidentTimes } from '../../../services/contracts/incident'
+import { type ApproximateLocation, type ReportedTimePeriod } from '../../../services/contracts'
+import { reportedTimePeriods } from '../../../services/contracts/incident'
 import { Button } from '../../../shared/components/Button'
 import { ChoiceGroup } from '../../../shared/components/ChoiceGroup'
 import { InfoNote } from '../../../shared/components/InfoNote'
+import { Field } from '../../../shared/components/Field'
 import { StepLayout } from '../../../shared/layouts/StepLayout'
 import { ReportAside } from '../components/ReportAside'
 import { DistrictPicker } from '../components/DistrictPicker'
@@ -25,8 +26,8 @@ export function ReportWhenScreen() {
   const onLocated = useCallback((location: ApproximateLocation) => { update({ location }) }, [update])
   const { status, locate } = useApproximateLocation(onLocated)
 
-  const timeOptions = incidentTimes.map((value) => ({ value, label: t(`when.options.${value}`) }))
-  const answered = Boolean(draft.occurredWhen || draft.location)
+  const timeOptions = reportedTimePeriods.map((value) => ({ value, label: t(`when.options.${value}`) }))
+  const answered = Boolean(draft.reportedTime || draft.occurredAt || draft.location)
   const location = draft.location
 
   const selectDistrict = (id: string) => {
@@ -50,11 +51,19 @@ export function ReportWhenScreen() {
         </>
       )}
     >
-      <ChoiceGroup<IncidentTime>
+      <ChoiceGroup<ReportedTimePeriod>
         label={t('when.whenLabel')}
         options={timeOptions}
-        value={draft.occurredWhen}
-        onChange={(occurredWhen) => { update({ occurredWhen }) }}
+        value={draft.reportedTime}
+        onChange={(reportedTime) => { update({ reportedTime }) }}
+      />
+
+      <Field
+        type="datetime-local"
+        label={t('when.occurredAt')}
+        hint={t('when.occurredAtHint')}
+        value={draft.occurredAt ?? ''}
+        onChange={(event) => { update({ occurredAt: event.target.value || undefined }) }}
       />
 
       <div className="flex flex-col gap-3">
