@@ -269,6 +269,14 @@
   background: var(--color-mint-soft);
 }
 
+/* OpenStreetMap's tiles are vivid. Desaturating them here keeps the basemap
+   quiet without depending on a keyed tile provider, so the reported areas and
+   the route are the only saturated things on the map. Only the tiles are
+   filtered: markers, lines and labels sit in their own panes. */
+.safety-map .leaflet-tile-pane {
+  filter: saturate(0.42) brightness(1.06) contrast(0.94);
+}
+
 /* The report count, inside its marker: the tooltip chrome is removed so only
    the number shows. */
 .leaflet-tooltip.safety-map-count {

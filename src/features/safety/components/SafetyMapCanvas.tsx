@@ -104,11 +104,13 @@ export function SafetyMapCanvas({
       className="safety-map h-[26rem] overflow-hidden rounded-lg border border-line/70 shadow-lift lg:h-[34rem]"
     >
       <MapContainer center={center} zoom={13} scrollWheelZoom zoomControl={false} className="size-full">
-        {/* A muted basemap, so the reported areas and the route carry the
-            colour instead of competing with the tiles. */}
+        {/* OpenStreetMap's own tiles: no API key, and the same data the
+            routing and place search already use. They are bright, so they are
+            desaturated in CSS instead, letting the reported areas and the
+            route carry the colour. */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           maxZoom={19}
         />
         {/* Bottom right, clear of the route labels that sit mid-map. */}
@@ -198,8 +200,11 @@ export function SafetyMapCanvas({
 
         {/* Walking time sits on each route, as on a familiar map, so the cost
             of a longer but clear route is visible without hovering. */}
-        {routes.map((route) => {
-          const midpoint = route.geometry[Math.floor(route.geometry.length / 2)]
+        {routes.map((route, index) => {
+          // Routes in the same corridor have midpoints within metres of each
+          // other, so the labels are spread along their own paths instead.
+          const fraction = [0.5, 0.3, 0.7, 0.2][index % 4]
+          const midpoint = route.geometry[Math.floor(route.geometry.length * fraction)]
           if (!midpoint) return null
           const selected = route.id === selectedRouteId
           const minutes = Math.max(1, Math.round(route.durationSeconds / 60))
