@@ -202,4 +202,8 @@ immediately.
 ## Third-party
 
 React, React Router, TanStack Query, Zod, i18next, Tailwind CSS, Vite, Lucide icons, Fontsource (Fraunces, Figtree, Noto Serif/Sans Sinhala and Tamil, all SIL OFL), Vitest and Testing
-Library (see `package.json`). Add a project `LICENSE` before publishing the repository.
+Library (see `package.json`).
+
+## License
+
+Released under the [MIT License](LICENSE).
