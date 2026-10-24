@@ -34,6 +34,10 @@ export function PlaceSearchField({
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
   const [searching, setSearching] = useState(false)
   const [open, setOpen] = useState(false)
+  // Distinct from an honest empty result: the search itself could not be
+  // reached, so the message should send you to the map instead of implying
+  // the place just does not exist.
+  const [searchFailed, setSearchFailed] = useState(false)
 
   const searchable = open && query.trim().length >= 2
   // Derived rather than cleared in the effect, so a short query simply shows
@@ -45,12 +49,12 @@ export function PlaceSearchField({
     let active = true
     // Debounced so typing does not fire a lookup per keystroke.
     const timer = setTimeout(async () => {
-      if (active) setSearching(true)
+      if (active) { setSearching(true); setSearchFailed(false) }
       try {
         const results = await services.places.searchPlaces({ query, limit: 6 })
         if (active) setSuggestions(results)
       } catch {
-        if (active) setSuggestions([])
+        if (active) { setSuggestions([]); setSearchFailed(true) }
       } finally {
         if (active) setSearching(false)
       }
@@ -118,7 +122,9 @@ export function PlaceSearchField({
             <div className="p-4"><Spinner label={t('planner.searching')} /></div>
           ) : null}
           {!searching && visible.length === 0 ? (
-            <p className="m-0 p-4 text-sm text-ink-muted">{t('planner.noResults')}</p>
+            <p className="m-0 p-4 text-sm text-ink-muted">
+              {t(searchFailed ? 'planner.searchUnavailable' : 'planner.noResults')}
+            </p>
           ) : null}
           {visible.map((place, index) => (
             <button
