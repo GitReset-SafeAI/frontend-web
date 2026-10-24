@@ -70,7 +70,7 @@ export function StepLayout({ step, title, subtitle, footer, aside, children }: S
             {children}
 
             {footer ? (
-              <div className="sticky bottom-[calc(6.5rem+env(safe-area-inset-bottom))] -mx-4 flex gap-3 border-t border-line/70 bg-screen/95 p-4 backdrop-blur sm:-mx-6 sm:px-6 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none [&>*]:flex-1">
+              <div className="sticky bottom-[calc(6.5rem+env(safe-area-inset-bottom))] -mx-4 flex gap-3 border-t border-line/70 bg-screen/95 p-4 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none [&>*]:flex-1">
                 {footer}
               </div>
             ) : null}

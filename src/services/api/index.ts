@@ -12,4 +12,17 @@ export const apiServices: AppServices = {
     transcribeVoice: notAgreed('transcription'),
   },
   hotspots: { listHotspots: notAgreed('hotspot') },
+  auth: {
+    getSession: notAgreed('authentication'),
+    signUp: notAgreed('authentication'),
+    logIn: notAgreed('authentication'),
+    logOut: notAgreed('authentication'),
+  },
+  contacts: {
+    list: notAgreed('emergency contacts'),
+    add: notAgreed('emergency contacts'),
+    update: notAgreed('emergency contacts'),
+    remove: notAgreed('emergency contacts'),
+    makePrimary: notAgreed('emergency contacts'),
+  },
 }

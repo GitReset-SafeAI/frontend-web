@@ -4,6 +4,7 @@ import { I18nextProvider } from 'react-i18next'
 import { MemoryRouter } from 'react-router-dom'
 
 import { AppRoutes } from '../app/AppRoutes'
+import { AuthProvider } from '../features/account'
 import { ReportDraftProvider } from '../features/reporting'
 import i18n from '../i18n'
 
@@ -13,9 +14,11 @@ export function renderApp(initialPath = '/') {
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialPath]}>
-          <ReportDraftProvider>
-            <AppRoutes />
-          </ReportDraftProvider>
+          <AuthProvider>
+            <ReportDraftProvider>
+              <AppRoutes />
+            </ReportDraftProvider>
+          </AuthProvider>
         </MemoryRouter>
       </QueryClientProvider>
     </I18nextProvider>,

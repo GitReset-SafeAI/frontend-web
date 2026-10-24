@@ -84,7 +84,7 @@ Replace the PNGs with an SVG from the designer when one exists.
 | Heuristic | Where |
 | --- | --- |
 | 1 Visibility of system status | Route progress with stops (ticked, current, upcoming), active nav chip, "Analysing your report…", locating/transcribing states, SOS countdown, map loading/retry, "Sample data" banner |
-| 2 Match with the real world | Plain words ("Few reports", not scores), district names, 119/1990, red SOS, each language written in its own script |
+| 2 Match with the real world | Plain words ("Few reports", not scores), district names, SOS that calls someone you chose, red SOS, each language written in its own script |
 | 3 User control and freedom | Back/Edit on every step, Cancel on SOS (also Escape), Remove location, tap a chosen option again to clear it, Start over, draft kept while browsing |
 | 4 Consistency and standards | One button size and role system (navy = in-flow, coral = start a report, mint = tonal), one focus ring, shared step layout, red reserved for SOS |
 | 5 Error prevention | SOS countdown, transcript must be confirmed, submit disabled until valid, no double submit, location only on tap and rounded to ~1 km |

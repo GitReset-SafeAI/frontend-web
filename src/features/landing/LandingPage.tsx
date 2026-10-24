@@ -2,24 +2,10 @@ import { Bot, Check, ClipboardList, EyeOff, Lock, Map, MapPin, PenLine, PhoneCal
 import type { ComponentType } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { IncidentAnalysis } from '../../services/contracts'
 import { ButtonLink } from '../../shared/components/Button'
 import { RoadArt } from '../../shared/components/RoadArt'
-import { EstimateTicket } from '../incident-ai'
 
 type Icon = ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
-
-// Static illustration only. It is labelled as a sample and is never a real report or assessment.
-const sampleAnalysis: IncidentAnalysis = {
-  category: 'following',
-  severity: 'moderate',
-  confidence: 'medium',
-  extractedDetails: [
-    { kind: 'vehicle', value: 'bus' },
-    { kind: 'place', value: 'station' },
-  ],
-  missingInformation: ['time', 'location'],
-}
 
 const stations: { key: 'report' | 'analyse' | 'check' | 'map'; icon: Icon }[] = [
   { key: 'report', icon: PenLine },
@@ -41,14 +27,16 @@ export function LandingPage() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-linear-to-b from-mint-soft via-screen to-screen">
-        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-14 px-4 pb-52 pt-14 sm:px-6 sm:pt-20 lg:grid-cols-[1.1fr_0.9fr] lg:pb-72 lg:pt-24">
-          <div className="rise flex min-w-0 flex-col items-start gap-6">
+      {/* Hero: one message, two actions, and the road below it */}
+      {/* --road-h is the road's height. The content always clears it by --road-gap, so the pin (which rises above
+          the road) can never sit under the buttons, at any screen size. */}
+      <section className="relative overflow-hidden bg-linear-to-b from-mint-soft via-screen to-screen [--road-gap:3.5rem] [--road-h:clamp(10rem,21.7vw,20rem)] sm:[--road-gap:5rem]">
+        <div className="relative z-10 mx-auto max-w-6xl px-4 pb-[calc(var(--road-h)+var(--road-gap))] pt-16 sm:px-6 sm:pt-24 lg:pt-28">
+          <div className="rise flex flex-col items-center gap-7 text-center">
             <h1 className="display-xl">
               {t('landing.titleLead')} <em className="scribble">{t('landing.titleEmphasis')}</em>
             </h1>
-            <p className="m-0 max-w-lg text-lg text-ink-muted sm:text-xl">{t('landing.subtitle')}</p>
+            <p className="m-0 max-w-2xl text-lg text-ink-muted sm:text-xl">{t('landing.subtitle')}</p>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
               <ButtonLink to="/report" variant="accent" icon={<ClipboardList className="size-5" aria-hidden />}>
                 {t('landing.ctaReport')}
@@ -58,15 +46,8 @@ export function LandingPage() {
               </ButtonLink>
             </div>
           </div>
-
-          <div className="rise mx-auto flex w-full max-w-md min-w-0 flex-col gap-3 [animation-delay:150ms]" role="group" aria-label={t('landing.previewTitle')}>
-            <div className="lg:rotate-[1.5deg]">
-              <EstimateTicket compact words={t('landing.previewWords')} analysis={sampleAnalysis} />
-            </div>
-            <p className="m-0 text-center text-sm font-semibold text-ink-muted">{t('landing.previewNote')}</p>
-          </div>
         </div>
-        <RoadArt animated className="pointer-events-none absolute inset-x-0 bottom-0 h-[clamp(10rem,21.7vw,20rem)] w-full" />
+        <RoadArt animated className="pointer-events-none absolute inset-x-0 bottom-0 h-(--road-h) w-full" />
       </section>
 
       {/* The problem */}

@@ -1,4 +1,4 @@
-export type ApiErrorKind = 'not-implemented' | 'network' | 'unknown'
+export type ApiErrorKind = 'not-implemented' | 'network' | 'unauthorized' | 'not-found' | 'conflict' | 'limit' | 'unknown'
 
 export class ApiError extends Error {
   readonly kind: ApiErrorKind

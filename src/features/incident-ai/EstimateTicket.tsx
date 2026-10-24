@@ -10,13 +10,11 @@ interface EstimateTicketProps {
   // The user's own words. Always shown first and always kept separate from the AI's reading.
   words: string
   analysis: IncidentAnalysis
-  // A short preview (quote, category, seriousness, stamp). The full ticket is for the submitted report.
-  compact?: boolean
 }
 
 // The report as a ticket: your words on top, a perforated tear, then the AI's interpretation below,
 // stamped as an estimate. The layout itself says "these are two different things".
-export function EstimateTicket({ words, analysis, compact = false }: EstimateTicketProps) {
+export function EstimateTicket({ words, analysis }: EstimateTicketProps) {
   const { t } = useTranslation('incidentAi')
   const { t: tw } = useTranslation('web')
   const { t: tr } = useTranslation('reporting')
@@ -26,22 +24,20 @@ export function EstimateTicket({ words, analysis, compact = false }: EstimateTic
 
   return (
     <div className="ticket">
-      <section className={`ticket-top relative rounded-t-lg border-b-2 border-dashed border-line bg-surface px-6 ${compact ? 'pb-6 pt-5' : 'pb-7 pt-6'}`}>
+      <section className="ticket-top relative rounded-t-lg border-b-2 border-dashed border-line bg-surface px-6 pb-7 pt-6">
         <p className="m-0 text-sm font-semibold text-ink-muted">{tr('submitted.yourWords')}</p>
         <div className="mt-2 flex gap-3">
           <Quote className="mt-1 size-6 shrink-0 text-coral" aria-hidden />
-          <p className={`m-0 whitespace-pre-wrap break-words font-display leading-snug text-navy ${compact ? 'text-lg' : 'text-xl'}`}>{words}</p>
+          <p className="m-0 whitespace-pre-wrap break-words font-display text-xl leading-snug text-navy">{words}</p>
         </div>
       </section>
 
-      <section className={`ticket-bottom relative rounded-b-lg bg-mint-soft px-6 ${compact ? 'pb-5 pt-6' : 'pb-6 pt-7'}`}>
+      <section className="ticket-bottom relative rounded-b-lg bg-mint-soft px-6 pb-6 pt-7">
         <div className="flex items-start justify-between gap-3">
-          {/* In the compact preview the stamp already says "estimate", so the title is kept for screen readers only. */}
-          <h2 className={`flex items-center gap-2 font-sans text-base font-bold tracking-normal ${compact ? 'sr-only' : ''}`}>
+          <h2 className="flex items-center gap-2 font-sans text-base font-bold tracking-normal">
             <Bot className="size-5 shrink-0" aria-hidden />
             {t('title')}
           </h2>
-          {compact ? <Bot className="size-5 shrink-0 text-navy" aria-hidden /> : null}
           {/* Decorative restatement of the estimate note below. */}
           <span
             aria-hidden
@@ -51,7 +47,7 @@ export function EstimateTicket({ words, analysis, compact = false }: EstimateTic
           </span>
         </div>
 
-        <div className={`${compact ? 'mt-4' : 'mt-5'} grid gap-5 sm:grid-cols-2`}>
+        <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <div>
             <p className="m-0 text-sm font-semibold text-ink-muted">{t('category')}</p>
             <p className="m-0 font-display text-2xl font-semibold leading-tight text-navy">{categoryLabel(analysis.category)}</p>
@@ -60,7 +56,7 @@ export function EstimateTicket({ words, analysis, compact = false }: EstimateTic
 
           <div>
             <p className="m-0 text-sm font-semibold text-ink-muted">{t('severity')}</p>
-            <div className={`mt-1 flex gap-3 ${compact ? 'flex-col items-start gap-1.5' : 'items-center'}`}>
+            <div className="mt-1 flex items-center gap-3">
               <div className="flex gap-1" role="img" aria-label={severityLabel}>
                 {[1, 2, 3].map((level) => (
                   <span key={level} className={`h-3 w-7 rounded-full ${level <= bars ? 'bg-navy' : 'bg-line'}`} />
@@ -72,7 +68,6 @@ export function EstimateTicket({ words, analysis, compact = false }: EstimateTic
           </div>
         </div>
 
-        {compact ? null : (
         <div className="mt-5">
           <p className="m-0 text-sm font-semibold text-ink-muted">{t('picked')}</p>
           {analysis.extractedDetails.length === 0 ? (
@@ -87,9 +82,8 @@ export function EstimateTicket({ words, analysis, compact = false }: EstimateTic
             </ul>
           )}
         </div>
-        )}
 
-        {!compact && analysis.missingInformation.length > 0 ? (
+        {analysis.missingInformation.length > 0 ? (
           <div className="mt-4">
             <p className="m-0 text-sm font-semibold text-ink-muted">{t('missing')}</p>
             <ul className="m-0 mt-1.5 flex list-none flex-wrap gap-2 p-0">
@@ -103,12 +97,10 @@ export function EstimateTicket({ words, analysis, compact = false }: EstimateTic
           </div>
         ) : null}
 
-        {compact ? null : (
-          <p className="m-0 mt-5 flex items-start gap-2 text-sm text-ink-muted">
-            <Info className="mt-1 size-4 shrink-0" aria-hidden />
-            {t('estimateNote')}
-          </p>
-        )}
+        <p className="m-0 mt-5 flex items-start gap-2 text-sm text-ink-muted">
+          <Info className="mt-1 size-4 shrink-0" aria-hidden />
+          {t('estimateNote')}
+        </p>
       </section>
     </div>
   )

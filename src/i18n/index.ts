@@ -1,13 +1,16 @@
 import { createInstance } from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
+import enAccount from './locales/en/account.json'
 import enCommon from './locales/en/common.json'
 import enEmergency from './locales/en/emergency.json'
 import enIncidentAi from './locales/en/incidentAi.json'
 import enReporting from './locales/en/reporting.json'
 import enSafety from './locales/en/safety.json'
 import enWeb from './locales/en/web.json'
+import siAccount from './locales/si/account.json'
 import siCommon from './locales/si/common.json'
+import taAccount from './locales/ta/account.json'
 import taCommon from './locales/ta/common.json'
 import siEmergency from './locales/si/emergency.json'
 import taEmergency from './locales/ta/emergency.json'
@@ -56,9 +59,9 @@ const i18n = createInstance()
 
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { common: enCommon, emergency: enEmergency, incidentAi: enIncidentAi, reporting: enReporting, safety: enSafety, web: enWeb },
-    si: { common: siCommon, emergency: siEmergency, incidentAi: siIncidentAi, reporting: siReporting, safety: siSafety, web: siWeb },
-    ta: { common: taCommon, emergency: taEmergency, incidentAi: taIncidentAi, reporting: taReporting, safety: taSafety, web: taWeb },
+    en: { account: enAccount, common: enCommon, emergency: enEmergency, incidentAi: enIncidentAi, reporting: enReporting, safety: enSafety, web: enWeb },
+    si: { account: siAccount, common: siCommon, emergency: siEmergency, incidentAi: siIncidentAi, reporting: siReporting, safety: siSafety, web: siWeb },
+    ta: { account: taAccount, common: taCommon, emergency: taEmergency, incidentAi: taIncidentAi, reporting: taReporting, safety: taSafety, web: taWeb },
   },
   lng: initialLanguage(),
   supportedLngs: [...supportedLanguages],

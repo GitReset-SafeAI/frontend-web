@@ -2,7 +2,16 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
+import { DEMO_EMAIL } from '../config/demo'
+import { mockServices } from '../services/mocks'
+import type { ContactInput } from '../services/contracts'
 import { renderApp } from './renderApp'
+
+// Starts a test already signed in, with the given contacts, by using the same service the app does.
+async function seedAccount(contacts: ContactInput[]) {
+  await mockServices.auth.signUp({ name: 'Nimali', email: 'nimali@example.lk', password: 'password1' })
+  for (const contact of contacts) await mockServices.contacts.add(contact)
+}
 
 describe('landing and navigation', () => {
   it('shows the landing page with honest limits and links into the product', () => {
@@ -32,10 +41,11 @@ describe('landing and navigation', () => {
   it('renders Tamil on every page without leaking untranslated keys', async () => {
     const { default: i18n } = await import('../i18n')
     await i18n.changeLanguage('ta')
-    for (const path of ['/', '/report', '/report/when', '/report/details', '/emergency', '/sos']) {
+    for (const path of ['/', '/report', '/report/when', '/report/details', '/emergency', '/sos', '/login', '/login?mode=signup']) {
       const { container, unmount } = renderApp(path)
       // A missing key renders as its dotted path (e.g. "describe.title"); none should appear.
-      expect(container.textContent).not.toMatch(/\b[a-z][A-Za-z]+\.[a-z][A-Za-z.]+\b/)
+      // (The demo account's email address is real text, not a key.)
+      expect((container.textContent ?? '').replace(DEMO_EMAIL, '')).not.toMatch(/\b[a-z][A-Za-z]+\.[a-z][A-Za-z.]+\b/)
       unmount()
     }
     renderApp('/safety')
@@ -116,21 +126,59 @@ describe('report flow', () => {
 })
 
 describe('emergency', () => {
-  it('counts down and can be cancelled without calling', async () => {
+  it('counts down toward the primary contact and can be cancelled without calling', async () => {
     const user = userEvent.setup()
+    await seedAccount([{ name: 'Amma', phone: '+94771234567', relationship: 'family' }])
     renderApp('/sos')
-    expect(screen.getByRole('heading', { name: /calling police \(119\) in/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /calling amma in/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /call now/i })).toBeInTheDocument()
     expect(screen.getByText(/does not alert anyone for you/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^cancel$/i }))
-    expect(screen.queryByText(/emergency call started/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/call started/i)).not.toBeInTheDocument()
   })
 
   it('opens the SOS countdown from the emergency page button', async () => {
     const user = userEvent.setup()
+    await seedAccount([{ name: 'Amma', phone: '+94771234567' }])
     renderApp('/emergency')
     await user.click(screen.getByRole('button', { name: /sos\. emergency help/i }))
-    expect(screen.getByRole('heading', { name: /calling police/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /calling amma/i })).toBeInTheDocument()
+  })
+
+  it('lists contacts on the emergency page as tap-to-call links', async () => {
+    await seedAccount([
+      { name: 'Amma', phone: '+94771234567' },
+      { name: 'Kasun', phone: '+94112345678' },
+    ])
+    renderApp('/emergency')
+    expect(await screen.findByRole('link', { name: /call amma/i })).toHaveAttribute('href', 'tel:+94771234567')
+    expect(screen.getByRole('link', { name: /call kasun/i })).toHaveAttribute('href', 'tel:+94112345678')
+    expect(screen.getByText('077 123 4567')).toBeInTheDocument()
+  })
+
+  it('never calls anyone when logged out: it asks you to log in instead', async () => {
+    renderApp('/sos')
+    expect(await screen.findByRole('heading', { name: /add an emergency contact first/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /^log in$/i })).toHaveAttribute('href', '/login')
+    expect(screen.queryByRole('button', { name: /call now/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument()
+  })
+
+  it('asks a logged-in user with no contacts to add one', async () => {
+    await seedAccount([])
+    renderApp('/sos')
+    expect(await screen.findByRole('heading', { name: /add an emergency contact first/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /add a contact/i })).toHaveAttribute('href', '/account')
+  })
+
+  it('no longer mentions police or ambulance numbers anywhere', async () => {
+    await seedAccount([{ name: 'Amma', phone: '+94771234567' }])
+    for (const path of ['/', '/emergency', '/sos', '/safety', '/account', '/login']) {
+      const { container, unmount } = renderApp(path)
+      await waitFor(() => { expect(container.textContent).not.toBe('') })
+      expect(container.textContent).not.toMatch(/\b119\b|\b1990\b|police|ambulance/i)
+      unmount()
+    }
   })
 })
 

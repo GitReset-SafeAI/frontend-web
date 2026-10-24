@@ -1,4 +1,5 @@
 import type { AppServices } from '../contracts'
+import { mockAuth, mockContacts } from './accounts'
 import { analyseSyntheticReport, sampleTranscript } from './fixtures/analysis'
 import { sampleHotspots } from './fixtures/hotspots'
 
@@ -7,6 +8,8 @@ const mockLatencyMs = import.meta.env.MODE === 'test' ? 0 : 1200
 const wait = (ms: number) => new Promise<void>((resolve) => { setTimeout(resolve, ms) })
 
 export const mockServices: AppServices = {
+  auth: mockAuth,
+  contacts: mockContacts,
   reports: {
     async submitReport(submission) {
       await wait(mockLatencyMs)

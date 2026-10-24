@@ -12,5 +12,9 @@ HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
 }
 window.scrollTo = () => undefined
 
-beforeEach(async () => { await i18n.changeLanguage('en') })
+beforeEach(async () => {
+  // The demo account and contacts persist in localStorage, so each test starts from nothing.
+  window.localStorage.clear()
+  await i18n.changeLanguage('en')
+})
 afterEach(() => { cleanup() })

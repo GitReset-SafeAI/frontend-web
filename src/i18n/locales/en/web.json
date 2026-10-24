@@ -6,9 +6,6 @@
     "subtitle": "Report an incident in minutes, and see where others have reported them across Sri Lanka.",
     "ctaReport": "Report an incident",
     "ctaMap": "Explore the safety map",
-    "previewTitle": "What an AI estimate looks like",
-    "previewNote": "Sample only · not a real report",
-    "previewWords": "A man on the bus kept staring at me and then followed me when I got off near the station.",
     "problemTitle": "The problem",
     "problemBody": "It is hard to tell whether an unfamiliar road, public place or transport stop is safe. Information about incidents is scattered across social media, personal networks and informal chats, so recurring patterns stay hidden.",
     "stepsTitle": "How it works",
@@ -45,8 +42,8 @@
         "body": "The public view shows approximate areas and report counts only. Location is used only if you choose to share it."
       },
       "sos": {
-        "title": "SOS calls from your phone",
-        "body": "SOS places a call from your device. SafeStep does not alert anyone for you."
+        "title": "SOS calls someone you trust",
+        "body": "SOS calls your emergency contact from your own phone. SafeStep does not alert anyone for you."
       }
     },
     "audienceTitle": "Who it is for",
@@ -63,8 +60,7 @@
   },
   "footer": {
     "disclaimer": "SafeStep cannot guarantee that any place or route is safe. It shows reported incidents and estimates only.",
-    "demo": "This is a demo: AI results and map data are synthetic samples.",
-    "emergency": "In an emergency: police {{police}} · ambulance {{ambulance}}"
+    "demo": "This is a demo: AI results and map data are synthetic samples."
   },
   "sos": {
     "desktopHint": "On a computer? A call can only start on a phone, so dial {{number}} from your phone."

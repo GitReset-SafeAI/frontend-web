@@ -25,7 +25,7 @@ patterns stay hidden.
 4. **Area summaries** show privacy-protected counts per area, never descriptions or exact locations.
 
 SafeStep does not track people, guarantee that any place is safe, or alert anyone on SOS (it places
-a call from the user's phone).
+a call from the user's own phone to their own emergency contact, not to the police).
 
 ## Pages
 
@@ -34,12 +34,35 @@ a call from the user's phone).
 | `/` | Landing page: problem, how it works, honest limits, sample AI estimate |
 | `/report` … `/report/submitted` | Describe → When & where → Details → Review → Submitted |
 | `/safety` | Safety map: map slot + list of aggregated areas (side by side on large screens) |
-| `/emergency` | Giant SOS button, direct 119 / 1990 links |
-| `/sos` | Full-screen 5 s cancellable countdown, then `tel:119` |
+| `/emergency` | Giant SOS button, what happens when you tap, and tap-to-call links for your emergency contacts |
+| `/sos` | Full-screen 5 s cancellable countdown, then `tel:` the primary emergency contact |
+| `/login` | Log in or create an account (demo, see below) |
+| `/account` | Your account and up to 5 emergency contacts (needs login) |
 
 Responsive behaviour: phones get a bottom tab bar and sticky step actions; ≥768 px gets a top nav; the
 safety page shows map and list together at ≥1024 px. An SOS pill is in every header outside the emergency
 page.
+
+## Demo sign-in (until the backend exists)
+
+Sign-in is a **demo** behind the same service layer as everything else (`src/services/mocks/accounts.ts`):
+
+**Quickest:** run `npm run dev`, open `/login` and click **Use demo account** (or log in as `demo@safestep.lk`
+with any password). It comes with two sample contacts (placeholder numbers: add your own to test dialling).
+
+**Or make your own:**
+
+1. On `/login` choose **Create account** and enter any name, any email and a password of 8+ characters. You land
+   on `/account`.
+2. Add an emergency contact (for example `077 123 4567`, `0771234567` or `+94 77 123 4567`; up to 5).
+3. Tap **SOS** (header) or the Emergency page: after the 5 s countdown the phone dials the first contact.
+   On a computer nothing can dial, so the page says so; test dialling on a phone (`npm run dev -- --host`).
+4. **Log in** later with the same email in the same browser. No password is read, checked or stored.
+
+Accounts and contacts are saved only in this browser's local storage (keys start with `safestep.demo.`), so they
+do not follow you across browsers and disappear in a private window. Do not enter real people's numbers.
+Clear them with `Object.keys(localStorage).filter(k => k.startsWith('safestep.demo.')).forEach(k => localStorage.removeItem(k))`.
+With `VITE_DATA_MODE=api` every auth and contacts call fails explicitly until the backend contract is agreed.
 
 ## Brand and design
 
