@@ -1,6 +1,7 @@
 import type { AuthService, ContactService } from './account'
-import type { HotspotService } from './hotspots'
 import type { ReportService } from './incident'
+import type { PlacesService } from './places'
+import type { SafetyMapService } from './safetyMap'
 
 export type {
   AuthService,
@@ -12,7 +13,6 @@ export type {
   SignUpInput,
   User,
 } from './account'
-export type { DataConfidence, Hotspot, HotspotActivity, HotspotService } from './hotspots'
 export type {
   ApproximateLocation,
   ConfidenceLevel,
@@ -29,9 +29,31 @@ export type {
   VoiceTranscript,
 } from './incident'
 
+export type { PlaceSearchRequest, PlacesService, PlaceSuggestion } from './places'
+
+// The safety map speaks the backend's own vocabulary. Still exported as
+// SafetyMapHotspot so the name says which contract it belongs to.
+export type {
+  BoundingBox,
+  Coordinate,
+  EvidenceLevel,
+  Hotspot as SafetyMapHotspot,
+  HotspotsRequest,
+  HotspotsResult,
+  Route,
+  RouteComparisonRequest,
+  RouteComparisonResult,
+  RouteRole,
+  SafetyMapService,
+  TimePeriod,
+  TimePeriodFilter,
+  TravelMode,
+} from './safetyMap'
+
 export interface AppServices {
   reports: ReportService
-  hotspots: HotspotService
   auth: AuthService
   contacts: ContactService
+  places: PlacesService
+  safetyMap: SafetyMapService
 }

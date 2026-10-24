@@ -1,11 +1,30 @@
-import type { AppServices } from '../contracts'
+import type { AppServices, HotspotsRequest, HotspotsResult } from '../contracts'
 import { mockAuth, mockContacts } from './accounts'
 import { analyseSyntheticReport, sampleTranscript } from './fixtures/analysis'
-import { sampleHotspots } from './fixtures/hotspots'
+import { searchDemoPlaces } from './fixtures/places'
+import { demoHotspots } from './fixtures/safetyMap'
+import { buildSyntheticComparison } from './fixtures/syntheticRoutes'
 
 // Simulated latency makes loading and processing states visible in demos. Tests skip it.
 const mockLatencyMs = import.meta.env.MODE === 'test' ? 0 : 1200
 const wait = (ms: number) => new Promise<void>((resolve) => { setTimeout(resolve, ms) })
+
+function withinBounds({ bounds }: HotspotsRequest, hotspot: HotspotsResult['hotspots'][number]) {
+  const { southWest, northEast } = bounds
+  return (
+    hotspot.center.latitude >= southWest.latitude &&
+    hotspot.center.latitude <= northEast.latitude &&
+    hotspot.center.longitude >= southWest.longitude &&
+    hotspot.center.longitude <= northEast.longitude
+  )
+}
+
+function matchesTimePeriod(
+  hotspot: HotspotsResult['hotspots'][number],
+  timePeriod: HotspotsRequest['timePeriod'],
+) {
+  return timePeriod === 'all' || hotspot.peakTimePeriod === null || hotspot.peakTimePeriod === timePeriod
+}
 
 export const mockServices: AppServices = {
   auth: mockAuth,
@@ -23,14 +42,35 @@ export const mockServices: AppServices = {
       return { text: sampleTranscript }
     },
   },
-  hotspots: {
-    async listHotspots() {
-      await wait(mockLatencyMs / 2)
-      return sampleHotspots.map((hotspot) => ({
-        ...hotspot,
-        center: { ...hotspot.center },
-        categoryCounts: hotspot.categoryCounts.map((entry) => ({ ...entry })),
-      }))
+  places: {
+    async searchPlaces({ query, limit = 6 }) {
+      return searchDemoPlaces(query, limit)
+    },
+  },
+  safetyMap: {
+    async getHotspots(request) {
+      // Mirrors the server filters so the map behaves the same in both modes.
+      const hotspots = demoHotspots.hotspots.filter(
+        (hotspot) => withinBounds(request, hotspot) && matchesTimePeriod(hotspot, request.timePeriod),
+      )
+      return {
+        ...demoHotspots,
+        windowDays: request.windowDays ?? demoHotspots.windowDays,
+        hotspots,
+        evidenceLevel: hotspots.length === 0 ? 'insufficient' : demoHotspots.evidenceLevel,
+      }
+    },
+    async compareRoutes(request) {
+      const hotspots = demoHotspots.hotspots.filter((hotspot) =>
+        matchesTimePeriod(hotspot, request.timePeriod),
+      )
+      return buildSyntheticComparison(
+        request.origin,
+        request.destination,
+        hotspots,
+        hotspots.length === 0 ? 'insufficient' : demoHotspots.evidenceLevel,
+        request.travelMode,
+      )
     },
   },
 }
