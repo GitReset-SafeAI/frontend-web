@@ -1,6 +1,7 @@
 {
   "nav": {
     "login": "Log in",
+    "signIn": "Sign up",
     "account": "Account",
     "accountA11y": "Your account, {{name}}"
   },
@@ -11,8 +12,11 @@
     "loginTitle": "Welcome back",
     "loginSubtitle": "Log in to keep emergency contacts that SOS can call.",
     "signupTitle": "Create your account",
+    "registrationSubmitted": "If registration was successful, check your email for a confirmation link if required, then log in.",
     "signupSubtitle": "An account lets you keep the people you trust ready for SOS.",
     "name": "Your name",
+    "phone": "Phone number",
+    "nic": "NIC number",
     "email": "Email",
     "password": "Password",
     "passwordHint": "At least 8 characters",
@@ -21,6 +25,8 @@
     "demoNote": "Demo sign-in: no real account is created, nothing leaves this browser, and no password is checked or stored. Real sign-in arrives with the backend.",
     "errors": {
       "name": "Please enter your name.",
+      "phone": "Enter a valid Sri Lankan phone number.",
+      "nic": "Enter a valid NIC number.",
       "email": "Please enter a valid email address.",
       "password": "Use at least 8 characters.",
       "passwordRequired": "Please enter your password.",
@@ -30,7 +36,7 @@
       "configuration": "Authentication is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.local, then restart the development server. Use a public publishable key.",
       "invalidCredentials": "The email or password is incorrect.",
       "emailUnconfirmed": "Confirm your email before logging in.",
-      "rateLimit": "Too many login attempts. Please wait and try again.",
+      "rateLimit": "Too many attempts. Please wait before trying again.",
       "network": "Unable to reach authentication. Check your connection and try again."
     },
     "aside": {

@@ -38,13 +38,15 @@ export const signUpInputSchema = z.object({
   name: z.string().trim().min(1).max(60),
   email: z.string().trim().pipe(z.email()),
   password: z.string().min(8),
+  nic: z.string().optional(),
+  phone_number: z.string().optional(),
 })
 export type SignUpInput = z.infer<typeof signUpInputSchema>
 
 export interface AuthService {
   // Resolves to the signed-in user, or null when there is no session.
   getSession(): Promise<User | null>
-  signUp(input: SignUpInput): Promise<User>
+  signUp(input: SignUpInput): Promise<User | null>
   logIn(input: LogInInput): Promise<User>
   logOut(): Promise<void>
   // Synchronous subscription; callbacks must not await other auth operations.

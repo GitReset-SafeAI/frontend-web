@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mock = vi.hoisted(() => ({
   getSession: vi.fn(),
-  signInWithPassword: vi.fn(),
+  setSession: vi.fn(),
   signOut: vi.fn(),
   unsubscribe: vi.fn(),
   listeners: new Set<(event: AuthChangeEvent, session: Session | null) => void>(),
@@ -17,10 +17,16 @@ const mock = vi.hoisted(() => ({
 }))
 
 vi.mock('../config/env', () => ({ env: mock.env }))
+vi.mock('../services/auth/signIn', () => ({
+  signIn: vi.fn(async () => ({
+    access_token: 'mock-access-token', refresh_token: 'mock-refresh-token',
+    token_type: 'bearer', expires_in: 3600,
+  })),
+}))
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({ auth: {
     getSession: mock.getSession,
-    signInWithPassword: mock.signInWithPassword,
+    setSession: mock.setSession,
     signOut: mock.signOut,
     onAuthStateChange: (listener: (event: AuthChangeEvent, session: Session | null) => void) => {
       mock.listeners.add(listener)
@@ -39,6 +45,7 @@ import { ApiError } from '../services/api/ApiError'
 import { mockServices } from '../services/mocks'
 import { supabaseAuth } from '../services/auth/supabaseAuth'
 import { getSupabaseClient } from '../services/auth/supabaseClient'
+import { signIn } from '../services/auth/signIn'
 import { renderApp } from './renderApp'
 
 const realUser: User = {
@@ -76,7 +83,7 @@ beforeEach(() => {
   mock.env.supabaseUrl = 'https://example.supabase.co'
   mock.env.supabasePublishableKey = 'sb_publishable_test_placeholder'
   mock.getSession.mockResolvedValue(loggedOut)
-  mock.signInWithPassword.mockResolvedValue(restored)
+  mock.setSession.mockResolvedValue(restored)
   mock.signOut.mockResolvedValue({ error: null })
 })
 
@@ -86,11 +93,21 @@ describe('Supabase password login', () => {
     const user = await fillLogin()
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
     expect(await screen.findByRole('heading', { name: /know what has been reported/i })).toBeInTheDocument()
-    expect(mock.signInWithPassword).toHaveBeenCalledExactlyOnceWith({ email: 'person@example.com', password: 'test-password' })
+    expect(mock.setSession).toHaveBeenCalledExactlyOnceWith({ access_token: 'mock-access-token', refresh_token: 'mock-refresh-token' })
+    expect(signIn).toHaveBeenCalledExactlyOnceWith({ email: 'person@example.com', password: 'test-password' })
     expect(createClient).toHaveBeenCalledWith(mock.env.supabaseUrl, mock.env.supabasePublishableKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
     })
     expect(screen.getByRole('link', { name: /your account, nimali/i })).toBeInTheDocument()
+  })
+
+  it('shows a backend credential rejection without installing a session', async () => {
+    vi.mocked(signIn).mockRejectedValueOnce(new ApiError('invalid-credentials', 'Invalid email or password.'))
+    renderApp('/login')
+    const user = await fillLogin()
+    await user.click(screen.getByRole('button', { name: /^log in$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/email or password is incorrect/i)
+    expect(mock.setSession).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -100,7 +117,7 @@ describe('Supabase password login', () => {
     [{ name: 'AuthRetryableFetchError' }, /unable to reach authentication/i],
     [{ code: 'provider_failure', message: 'private provider detail' }, /something went wrong/i],
   ])('maps provider failure %j without exposing provider messages', async (error, message) => {
-    mock.signInWithPassword.mockResolvedValue({ data: { session: null }, error })
+    mock.setSession.mockResolvedValue({ data: { session: null }, error })
     renderApp('/login')
     const user = await fillLogin()
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
@@ -110,31 +127,48 @@ describe('Supabase password login', () => {
   })
 
   it('handles rejected network requests', async () => {
-    mock.signInWithPassword.mockRejectedValue(new TypeError('private network detail'))
+    mock.setSession.mockRejectedValue(new TypeError('private network detail'))
     renderApp('/login')
     const user = await fillLogin()
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/unable to reach authentication/i)
   })
 
-  it('keeps signup and demo controls out of real mode, including a signup URL', async () => {
+  it('shows registration without demo controls in real mode', async () => {
     renderApp('/login?mode=signup')
-    await fillLogin()
-    expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
-    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Your name')).not.toBeInTheDocument()
+    await waitFor(() => { expect(screen.getByLabelText('Your name')).toBeEnabled() })
+    expect(screen.getByRole('heading', { name: /create your account/i })).toBeInTheDocument()
     expect(screen.queryByText(/demo sign-in/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /use demo account/i })).not.toBeInTheDocument()
-    await expect(supabaseAuth.signUp({ name: 'Test', email: 'person@example.com', password: 'password1' })).rejects.toMatchObject({ kind: 'not-implemented' })
+  })
+
+  it('registers through the backend and returns to login', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
+    try {
+      renderApp('/login?mode=signup')
+      const user = userEvent.setup()
+      await waitFor(() => { expect(screen.getByLabelText('Your name')).toBeEnabled() })
+      await user.type(screen.getByLabelText('Your name'), 'Nimali')
+      await user.type(screen.getByLabelText('Phone number'), '0771234567')
+      await user.type(screen.getByLabelText('NIC number'), '200012300123')
+      await user.type(screen.getByLabelText('Email'), 'person@example.com')
+      await user.type(screen.getByLabelText('Password'), 'password123')
+      await user.click(screen.getByRole('button', { name: /^create account$/i }))
+      expect(await screen.findByText(/check your email for a confirmation link/i)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
+      expect(fetchMock).toHaveBeenCalledWith('/api/v1/authentication/sign-up', expect.objectContaining({
+        method: 'POST', body: JSON.stringify({ name: 'Nimali', email: 'person@example.com', password: 'password123', nic: '200012300123', phone_number: '+94771234567' }),
+      }))
+    } finally { fetchMock.mockRestore() }
   })
 
   it('disables the form during login and prevents repeated requests', async () => {
     const pending = deferred<typeof restored>()
-    mock.signInWithPassword.mockReturnValue(pending.promise)
+    mock.setSession.mockReturnValue(pending.promise)
     renderApp('/login')
     const user = await fillLogin()
     await user.dblClick(screen.getByRole('button', { name: /^log in$/i }))
-    expect(mock.signInWithPassword).toHaveBeenCalledTimes(1)
+    expect(mock.setSession).toHaveBeenCalledTimes(1)
     expect(screen.getByLabelText('Email')).toBeDisabled()
     expect(screen.getByLabelText('Password')).toBeDisabled()
     expect(screen.getByRole('button', { name: /^log in$/i })).toHaveAttribute('aria-busy', 'true')
@@ -286,7 +320,7 @@ describe('session lifecycle and redirects', () => {
 
   it('does not revive a session when sign-out arrives before login completes', async () => {
     const pending = deferred<typeof restored>()
-    mock.signInWithPassword.mockReturnValue(pending.promise)
+    mock.setSession.mockReturnValue(pending.promise)
     renderApp('/login')
     const user = await fillLogin()
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
@@ -337,7 +371,7 @@ describe('configuration and service isolation', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY/)
     expect(screen.getByRole('button', { name: /^log in$/i })).toBeDisabled()
     expect(mock.getSession).not.toHaveBeenCalled()
-    expect(mock.signInWithPassword).not.toHaveBeenCalled()
+    expect(mock.setSession).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: /use demo account/i })).not.toBeInTheDocument()
   })
 
@@ -370,7 +404,7 @@ describe('configuration and service isolation', () => {
   it('uses one client with SDK session persistence and refresh', () => {
     expect(getSupabaseClient()).toBe(getSupabaseClient())
     // The mock client has the SDK auth surface; no request has been made.
-    expect(mock.signInWithPassword).not.toHaveBeenCalled()
+    expect(mock.setSession).not.toHaveBeenCalled()
   })
 
   it('keeps mock data independent and prevents real users from accessing demo contacts', async () => {
