@@ -12,6 +12,8 @@ function reportEndpoint(): string {
   try {
     const url = new URL(baseUrl)
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error()
+    // On LAN devices, browser localhost is the phone. Use Vite's same-origin proxy.
+    if (import.meta.env.DEV) return reportRequestPath
     return `${url.href.replace(/\/+$/, '')}${reportRequestPath}`
   } catch {
     throw new ApiError('configuration', 'Set VITE_API_BASE_URL to the backend base URL, then restart Vite.')

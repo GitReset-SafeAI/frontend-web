@@ -1,3 +1,4 @@
+import { env } from '../../../config/env'
 import type { EmergencyContact } from '../../../services/contracts'
 import { contactsAvailable } from '../../../services'
 import { useAuth } from '../../account/authContext'
@@ -17,6 +18,8 @@ export function useSosContacts(): SosContacts {
   if (!contactsAvailable) return { state: 'error', contacts: [] }
   if (query.isPending) return { state: 'loading', contacts: [] }
   if (query.isError) return { state: 'error', contacts: [] }
-  const [primary] = query.data
+  const primary = env.authMode === 'supabase'
+    ? query.data.find((contact) => contact.slot === 0)
+    : query.data[0]
   return primary ? { state: 'ready', contacts: query.data, primary } : { state: 'noContacts', contacts: [] }
 }

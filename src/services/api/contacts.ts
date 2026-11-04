@@ -7,6 +7,8 @@ import { emergencyContactSchema } from '../contracts/account'
 import { ApiError } from './ApiError'
 import { createApiClient } from './client'
 
+const savedContactSchema = emergencyContactSchema.extend({ slot: z.number().int().min(0).max(4) })
+
 async function request<T>(path: string, schema: z.ZodType<T>, method = 'GET', body?: unknown): Promise<T> {
   const token = await getSupabaseAccessToken()
   const baseUrl = import.meta.env.DEV ? '/' : (env.apiBaseUrl || '/')
@@ -26,9 +28,9 @@ async function request<T>(path: string, schema: z.ZodType<T>, method = 'GET', bo
 }
 
 export const contacts: ContactService = {
-  list: () => request('', z.array(emergencyContactSchema)),
-  add: (input) => request('', emergencyContactSchema, 'POST', input),
-  update: (id, input) => request(`/${encodeURIComponent(id)}`, emergencyContactSchema, 'PATCH', input),
+  list: () => request('', z.array(savedContactSchema)),
+  add: (input) => request('', savedContactSchema, 'POST', input),
+  update: (id, input) => request(`/${encodeURIComponent(id)}`, savedContactSchema, 'PATCH', input),
   remove: (id) => request(`/${encodeURIComponent(id)}`, z.undefined(), 'DELETE'),
   makePrimary: (id) => request(`/${encodeURIComponent(id)}/primary`, z.undefined(), 'POST'),
 }

@@ -104,7 +104,7 @@ export function AccountPage() {
                 <li key={contact.id}>
                   <ContactCard
                     contact={contact}
-                    isPrimary={index === 0}
+                    isPrimary={env.authMode === 'supabase' ? contact.slot === 0 : index === 0}
                     busy={mutations.makePrimary.isPending || mutations.remove.isPending}
                     onEdit={() => { setEditing(contact) }}
                     onRemove={() => { setRemoving(contact) }}

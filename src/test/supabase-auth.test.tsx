@@ -38,6 +38,9 @@ vi.mock('@supabase/supabase-js', () => ({
   } })),
 }))
 
+vi.mock('../features/emergency/phoneCall', () => ({ openPhoneCall: vi.fn() }))
+
+import { openPhoneCall } from '../features/emergency/phoneCall'
 import { createClient } from '@supabase/supabase-js'
 import { services, selectServices } from '../services'
 import { apiServices } from '../services/api'
@@ -429,11 +432,11 @@ describe('configuration and service isolation', () => {
 describe('real emergency contacts', () => {
   it('adds a contact directly from Emergency and reloads it from the backend', async () => {
     mock.getSession.mockResolvedValue(restored)
-    const rows: { id: string; name: string; phone: string }[] = []
+    const rows: { id: string; name: string; phone: string; slot: number }[] = []
     const fetchMock = vi.fn().mockImplementation(async (_url: string, options: RequestInit) => {
       if (options.method === 'POST') {
         const input = JSON.parse(options.body as string)
-        const contact = { id: 'contact-1', ...input }
+        const contact = { id: 'contact-1', slot: 0, ...input }
         rows.push(contact)
         return new Response(JSON.stringify(contact), { status: 201 })
       }
@@ -474,5 +477,35 @@ describe('real emergency contacts', () => {
     expect(screen.getByLabelText(/^phone number$/i)).toHaveValue('0771234567')
     expect(screen.getByRole('button', { name: /^save contact$/i })).toBeEnabled()
     expect(screen.queryByRole('link', { name: /call amma/i })).not.toBeInTheDocument()
+  })
+})
+
+
+describe('slot-zero SOS calls', () => {
+  it('targets slot zero even when another contact is returned first', async () => {
+    mock.getSession.mockResolvedValue(restored)
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response(JSON.stringify([
+      { id: 'slot-two', slot: 2, name: 'Other', phone: '+94777654321' },
+      { id: 'slot-zero', slot: 0, name: 'Amma', phone: '+94771234567' },
+    ]), { status: 200 })))
+    renderApp('/emergency')
+    const user = userEvent.setup()
+    await screen.findByRole('link', { name: /call amma/i })
+    await user.click(screen.getByRole('button', { name: /sos\. emergency help/i }))
+    expect(await screen.findByRole('heading', { name: /calling amma in/i })).toBeInTheDocument()
+    expect(openPhoneCall).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: /call now/i }))
+    expect(openPhoneCall).toHaveBeenCalledExactlyOnceWith('+94771234567')
+  })
+
+  it('does not start a countdown or substitute another contact when slot zero is absent', async () => {
+    mock.getSession.mockResolvedValue(restored)
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response(JSON.stringify([
+      { id: 'slot-two', slot: 2, name: 'Other', phone: '+94777654321' },
+    ]), { status: 200 })))
+    renderApp('/sos')
+    expect(await screen.findByRole('heading', { name: /add an emergency contact first/i })).toBeInTheDocument()
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument()
+    expect(openPhoneCall).not.toHaveBeenCalled()
   })
 })

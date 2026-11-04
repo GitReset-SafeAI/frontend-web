@@ -25,7 +25,11 @@ export const contactInputSchema = z.object({
 })
 export type ContactInput = z.infer<typeof contactInputSchema>
 
-export const emergencyContactSchema = contactInputSchema.extend({ id: z.string() })
+export const emergencyContactSchema = contactInputSchema.extend({
+  id: z.string(),
+  // Real contacts include a database slot. Older demo contacts use local array order.
+  slot: z.number().int().min(0).max(4).optional(),
+})
 export type EmergencyContact = z.infer<typeof emergencyContactSchema>
 
 export const logInInputSchema = z.object({

@@ -6,7 +6,7 @@ vi.mock('../services/auth/supabaseSession', () => ({ getSupabaseAccessToken: moc
 import { contacts } from '../services/api/contacts'
 import { ApiError } from '../services/api/ApiError'
 
-const contact = { id: 'contact-1', name: 'Amma', phone: '+94771234567' }
+const contact = { id: 'contact-1', slot: 0, name: 'Amma', phone: '+94771234567' }
 beforeEach(() => {
   vi.clearAllMocks()
   mock.token.mockResolvedValue('user-access-token')

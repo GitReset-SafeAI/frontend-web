@@ -8,6 +8,7 @@ import { Button } from '../../../shared/components/Button'
 import { formatPhone } from '../../account/phone'
 import { NoContactPrompt } from '../components/NoContactPrompt'
 import { useSosContacts } from '../hooks/useSosContacts'
+import { openPhoneCall } from '../phoneCall'
 import { SOS_COUNTDOWN_SECONDS } from '../sos'
 
 type Phase = 'countdown' | 'dialing' | 'called' | 'failed'
@@ -77,16 +78,17 @@ interface SosFlowProps {
 function SosFlow({ primary, contacts, onClose }: SosFlowProps) {
   const { t } = useTranslation('emergency')
   const { t: tw } = useTranslation('web')
+  const [target] = useState(primary)
   const [phase, setPhase] = useState<Phase>('countdown')
   const [secondsLeft, setSecondsLeft] = useState(SOS_COUNTDOWN_SECONDS)
-  const [dialled, setDialled] = useState<EmergencyContact>(primary)
+  const [dialled, setDialled] = useState<EmergencyContact>(target)
 
   const dial = useCallback((contact: EmergencyContact) => {
     setDialled(contact)
     setPhase('dialing')
     try {
       // A tel: link only does something on devices with a phone app; the page says so below.
-      window.location.href = `tel:${contact.phone}`
+      openPhoneCall(contact.phone)
       setPhase('called')
     } catch {
       setPhase('failed')
@@ -98,13 +100,13 @@ function SosFlow({ primary, contacts, onClose }: SosFlowProps) {
     const timer = setTimeout(() => {
       if (secondsLeft <= 1) {
         setSecondsLeft(0)
-        dial(primary)
+        dial(target)
       } else {
         setSecondsLeft(secondsLeft - 1)
       }
     }, 1000)
     return () => { clearTimeout(timer) }
-  }, [phase, secondsLeft, dial, primary])
+  }, [phase, secondsLeft, dial, target])
 
   const ended = phase === 'called' || phase === 'failed'
   const others = contacts.filter((contact) => contact.id !== dialled.id)
@@ -113,18 +115,18 @@ function SosFlow({ primary, contacts, onClose }: SosFlowProps) {
   return (
     <>
       <p className="sr-only" role="status">
-        {t('announceStart', { name: primary.name, seconds: SOS_COUNTDOWN_SECONDS })}
+        {t('announceStart', { name: target.name, seconds: SOS_COUNTDOWN_SECONDS })}
       </p>
 
       {phase === 'countdown' ? (
         <>
           <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-            <h1 className="display-md text-white">{t('countdownTitle', { name: primary.name })}</h1>
+            <h1 className="display-md text-white">{t('countdownTitle', { name: target.name })}</h1>
             <p className="m-0 text-[8.75rem] font-extrabold leading-none sm:text-[11rem]" aria-hidden>{secondsLeft}</p>
             <p className="m-0 text-2xl font-semibold" role="timer" aria-live="off">{t('secondsLabel', { count: secondsLeft })}</p>
           </div>
           <Actions>
-            <Button variant="light" onClick={() => { dial(primary) }}>{t('callNow')}</Button>
+            <Button variant="light" onClick={() => { dial(target) }}>{t('callNow')}</Button>
             <Button variant="outlineLight" autoFocus onClick={onClose}>{t('cancel')}</Button>
             <p className="m-0 mt-2 text-center">{t('disclaimer')}</p>
           </Actions>
