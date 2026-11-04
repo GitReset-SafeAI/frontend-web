@@ -1,6 +1,9 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('../features/emergency/phoneCall', () => ({ openPhoneCall: vi.fn() }))
+import { openPhoneCall } from '../features/emergency/phoneCall'
 
 import { DEMO_EMAIL } from '../config/demo'
 import { mockServices } from '../services/mocks'
@@ -126,23 +129,25 @@ describe('report flow', () => {
 })
 
 describe('emergency', () => {
-  it('counts down toward the primary contact and can be cancelled without calling', async () => {
-    const user = userEvent.setup()
+  beforeEach(() => { vi.mocked(openPhoneCall).mockReset() })
+  it('opens the dialer once on direct SOS entry, including StrictMode', async () => {
     await seedAccount([{ name: 'Amma', phone: '+94771234567', relationship: 'family' }])
-    renderApp('/sos')
-    expect(await screen.findByRole('heading', { name: /calling amma in/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /call now/i })).toBeInTheDocument()
-    expect(screen.getByText(/does not alert anyone for you/i)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /^cancel$/i }))
-    expect(screen.queryByText(/call started/i)).not.toBeInTheDocument()
+    renderApp('/sos', { strict: true })
+    expect(await screen.findByRole('heading', { name: /phone dialer opened/i })).toBeInTheDocument()
+    expect(openPhoneCall).toHaveBeenCalledExactlyOnceWith('+94771234567')
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument()
   })
 
-  it('opens the SOS countdown from the emergency page button', async () => {
+  it('opens the dialer immediately from the emergency button without dialing twice', async () => {
     const user = userEvent.setup()
     await seedAccount([{ name: 'Amma', phone: '+94771234567' }])
     renderApp('/emergency')
+    await screen.findByRole('link', { name: /call amma/i })
     await user.click(screen.getByRole('button', { name: /sos\. emergency help/i }))
-    expect(await screen.findByRole('heading', { name: /calling amma/i })).toBeInTheDocument()
+    expect(openPhoneCall).toHaveBeenCalledExactlyOnceWith('+94771234567')
+    expect(await screen.findByRole('heading', { name: /phone dialer opened/i })).toBeInTheDocument()
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /call now/i })).not.toBeInTheDocument()
   })
 
   it('lists contacts on the emergency page as tap-to-call links', async () => {

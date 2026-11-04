@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { SOS_COUNTDOWN_SECONDS } from '../sos'
 
 interface SosButtonProps {
   onPress: () => void
@@ -23,7 +22,7 @@ export function SosButton({ onPress }: SosButtonProps) {
           type="button"
           onClick={onPress}
           aria-label={t('sosA11yLabel')}
-          aria-description={t('sosA11yHint', { seconds: SOS_COUNTDOWN_SECONDS })}
+          aria-description={t('sosA11yHint')}
           style={{ fontSize: 'calc(var(--size) * 0.3)' }}
           className="grid size-(--size) place-items-center rounded-full bg-sos font-extrabold tracking-[0.1em] text-white shadow-[0_8px_16px_rgb(166_37_50/0.35)] transition-transform hover:bg-sos-pressed active:scale-[0.97] active:bg-sos-pressed"
         >

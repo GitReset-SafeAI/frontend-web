@@ -14,7 +14,7 @@ export function AppRoutes() {
     <>
       <ScrollToTop />
       <Routes>
-        {/* Full screen, no navigation chrome: nothing should compete with the countdown. */}
+        {/* Full screen, no navigation chrome: keep the phone controls easy to reach. */}
         <Route path="/sos" element={<SosPage />} />
         <Route element={<AppShell />}>
           <Route index element={<LandingPage />} />

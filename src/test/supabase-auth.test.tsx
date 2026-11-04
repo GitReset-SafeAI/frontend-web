@@ -492,13 +492,12 @@ describe('slot-zero SOS calls', () => {
     const user = userEvent.setup()
     await screen.findByRole('link', { name: /call amma/i })
     await user.click(screen.getByRole('button', { name: /sos\. emergency help/i }))
-    expect(await screen.findByRole('heading', { name: /calling amma in/i })).toBeInTheDocument()
-    expect(openPhoneCall).not.toHaveBeenCalled()
-    await user.click(screen.getByRole('button', { name: /call now/i }))
+    expect(await screen.findByRole('heading', { name: /phone dialer opened/i })).toBeInTheDocument()
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument()
     expect(openPhoneCall).toHaveBeenCalledExactlyOnceWith('+94771234567')
   })
 
-  it('does not start a countdown or substitute another contact when slot zero is absent', async () => {
+  it('does not open the dialer or substitute another contact when slot zero is absent', async () => {
     mock.getSession.mockResolvedValue(restored)
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response(JSON.stringify([
       { id: 'slot-two', slot: 2, name: 'Other', phone: '+94777654321' },
