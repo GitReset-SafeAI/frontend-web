@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // UI-facing models, not backend schemas. Auth adapters own session persistence;
-// real contact storage and the FastAPI authorization contract remain unimplemented.
+// real contacts use the authenticated backend adapter; demo contacts remain local.
 
 export const MAX_CONTACTS = 5
 

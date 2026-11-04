@@ -1,7 +1,7 @@
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
 import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mock = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -54,7 +54,7 @@ const realUser: User = {
 }
 const session: Session = {
   user: realUser, access_token: 'mock-access-token', refresh_token: 'mock-refresh-token',
-  expires_in: 3600, token_type: 'bearer',
+  expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: 'bearer',
 }
 const restored = { data: { session }, error: null }
 const loggedOut = { data: { session: null }, error: null }
@@ -85,7 +85,10 @@ beforeEach(() => {
   mock.getSession.mockResolvedValue(loggedOut)
   mock.setSession.mockResolvedValue(restored)
   mock.signOut.mockResolvedValue({ error: null })
+  vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response('[]', { status: 200 })))
 })
+
+afterEach(() => { vi.unstubAllGlobals() })
 
 describe('Supabase password login', () => {
   it('logs in through the existing form and preserves its home redirect', async () => {
@@ -113,7 +116,7 @@ describe('Supabase password login', () => {
   it.each([
     [{ code: 'invalid_credentials' }, /email or password is incorrect/i],
     [{ code: 'email_not_confirmed' }, /confirm your email/i],
-    [{ status: 429 }, /too many login attempts/i],
+    [{ status: 429 }, /too many attempts/i],
     [{ name: 'AuthRetryableFetchError' }, /unable to reach authentication/i],
     [{ code: 'provider_failure', message: 'private provider detail' }, /something went wrong/i],
   ])('maps provider failure %j without exposing provider messages', async (error, message) => {
@@ -234,12 +237,12 @@ describe('session lifecycle and redirects', () => {
     mock.getSession.mockResolvedValue(restored)
     const { queryClient } = renderApp('/account')
     await screen.findByRole('heading', { name: /hello, nimali/i })
-    queryClient.setQueryData(['contacts', realUser.id], [{ name: 'Private contact' }])
+    queryClient.setQueryData(['contacts', realUser.id], [{ id: 'private-1', name: 'Private contact', phone: '+94771234567' }])
     await emit('TOKEN_REFRESHED', session)
     expect(queryClient.getQueryData(['contacts', realUser.id])).toBeDefined()
     await emit('SIGNED_IN', { ...session, user: { ...realUser, id: 'another-user' } })
     expect(queryClient.getQueryData(['contacts', realUser.id])).toBeUndefined()
-    queryClient.setQueryData(['contacts', 'another-user'], [{ name: 'Another private contact' }])
+    queryClient.setQueryData(['contacts', 'another-user'], [{ id: 'private-2', name: 'Another private contact', phone: '+94777654321' }])
     await emit('SIGNED_OUT', null)
     expect(queryClient.getQueryData(['contacts', 'another-user'])).toBeUndefined()
   })
@@ -252,7 +255,7 @@ describe('session lifecycle and redirects', () => {
     expect(screen.queryByRole('heading', { name: /welcome back/i })).not.toBeInTheDocument()
     await act(async () => { pending.resolve(restored) })
     expect(await screen.findByRole('heading', { name: /hello, nimali/i })).toBeInTheDocument()
-    expect(screen.getByText(/contact storage and SOS contact calling are not connected/i)).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^add a contact$/i })).toBeEnabled()
   })
 
   it('redirects a restored user away from login', async () => {
@@ -414,10 +417,62 @@ describe('configuration and service isolation', () => {
     expect(services.reports.transcribeVoice).toBe(apiServices.reports.transcribeVoice)
     expect(services.safetyMap).toBe(mockServices.safetyMap)
     expect(services.contacts).toBe(apiServices.contacts)
-    await expect(services.contacts.list()).rejects.toMatchObject({ kind: 'not-implemented' })
-    await expect(services.contacts.add({ name: 'Test', phone: '+94771234567' })).rejects.toMatchObject({ kind: 'not-implemented' })
+    await expect(services.contacts.list()).rejects.toMatchObject({ kind: 'unauthorized' })
+    await expect(services.contacts.add({ name: 'Test', phone: '+94771234567' })).rejects.toMatchObject({ kind: 'unauthorized' })
     expect(selectServices('api', 'demo').auth).toBe(mockServices.auth)
     expect(selectServices('mock', 'supabase').auth).toBe(supabaseAuth)
     expect(selectServices('mock', 'demo').contacts).toBe(mockServices.contacts)
+  })
+})
+
+
+describe('real emergency contacts', () => {
+  it('adds a contact directly from Emergency and reloads it from the backend', async () => {
+    mock.getSession.mockResolvedValue(restored)
+    const rows: { id: string; name: string; phone: string }[] = []
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, options: RequestInit) => {
+      if (options.method === 'POST') {
+        const input = JSON.parse(options.body as string)
+        const contact = { id: 'contact-1', ...input }
+        rows.push(contact)
+        return new Response(JSON.stringify(contact), { status: 201 })
+      }
+      return new Response(JSON.stringify(rows), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const view = renderApp('/emergency')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /^add a contact$/i }))
+    await user.type(screen.getByLabelText(/^name$/i), 'Amma')
+    await user.type(screen.getByLabelText(/^phone number$/i), '077 123 4567')
+    await user.click(screen.getByRole('button', { name: /^save contact$/i }))
+    expect(await screen.findByRole('link', { name: /call amma/i })).toHaveAttribute('href', 'tel:+94771234567')
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/emergency-contacts', expect.objectContaining({
+      method: 'POST', credentials: 'omit', cache: 'no-store',
+      body: JSON.stringify({ name: 'Amma', phone: '+94771234567' }),
+    }))
+    const postOptions = fetchMock.mock.calls.find(([, options]) => options.method === 'POST')?.[1]
+    expect(postOptions.headers.get('Authorization')).toBe('Bearer mock-access-token')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    view.unmount()
+    renderApp('/emergency')
+    expect(await screen.findByRole('link', { name: /call amma/i })).toHaveAttribute('href', 'tel:+94771234567')
+    expect(screen.queryByText(/saved only in this browser/i)).not.toBeInTheDocument()
+  })
+
+  it('keeps the entered contact in the form when saving fails', async () => {
+    mock.getSession.mockResolvedValue(restored)
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (_url: string, options: RequestInit) =>
+      options.method === 'POST' ? new Response('{}', { status: 503 }) : new Response('[]', { status: 200 })))
+    renderApp('/emergency')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /^add a contact$/i }))
+    await user.type(screen.getByLabelText(/^name$/i), 'Amma')
+    await user.type(screen.getByLabelText(/^phone number$/i), '0771234567')
+    await user.click(screen.getByRole('button', { name: /^save contact$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn't save/i)
+    expect(screen.getByLabelText(/^phone number$/i)).toHaveValue('0771234567')
+    expect(screen.getByRole('button', { name: /^save contact$/i })).toBeEnabled()
+    expect(screen.queryByRole('link', { name: /call amma/i })).not.toBeInTheDocument()
   })
 })

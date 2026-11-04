@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router-dom'
 
+import { env } from '../../../config/env'
 import { ApiError } from '../../../services/api/ApiError'
 import { contactsAvailable } from '../../../services'
 import type { ContactInput, EmergencyContact } from '../../../services/contracts'
@@ -123,7 +124,7 @@ export function AccountPage() {
 
           <div className="flex flex-col gap-3">
             <InfoNote text={t('contacts.privacy')} />
-            <p className="m-0 text-sm text-ink-muted">{t('contacts.demoStorage')}</p>
+            {env.authMode === 'demo' ? <p className="m-0 text-sm text-ink-muted">{t('contacts.demoStorage')}</p> : null}
           </div>
         </section>}
 

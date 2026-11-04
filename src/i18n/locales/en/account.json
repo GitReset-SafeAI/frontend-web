@@ -103,6 +103,7 @@
     "removeConfirm": "Yes, remove",
     "privacy": "Contacts are only used to place a call from your phone when you use SOS. SafeStep never contacts them for you.",
     "demoStorage": "Demo: contacts are saved only in this browser.",
-    "unavailable": "Emergency contacts are not available with this authentication/data setup yet. Contact storage and SOS contact calling are not connected."
+    "unavailable": "Emergency contacts are not available with this authentication/data setup yet. Contact storage and SOS contact calling are not connected.",
+    "retry": "Try again"
   }
 }
