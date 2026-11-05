@@ -14,9 +14,10 @@ import { MAX_CONTACTS } from '../../../services/contracts/account'
 import { useAuth } from '../authContext'
 import { authErrorKey } from '../authErrorKey'
 import { safeReturnTo } from '../safeReturnTo'
+import { normalizePhone } from '../phone'
 
 type Mode = 'login' | 'signup'
-type FieldErrors = Partial<Record<'name' | 'email' | 'password', string>>
+type FieldErrors = Partial<Record<'name' | 'email' | 'password' | 'nic' | 'phone_number', string>>
 
 const tabClass = (active: boolean) =>
   `inline-flex min-h-12 flex-1 items-center justify-center rounded-full px-4 font-semibold transition-colors ${
@@ -30,15 +31,18 @@ export function LoginPage() {
   const location = useLocation()
   const [params, setParams] = useSearchParams()
   const isDemo = env.authMode === 'demo'
-  const mode: Mode = isDemo && params.get('mode') === 'signup' ? 'signup' : 'login'
+  const mode: Mode = params.get('mode') === 'signup' ? 'signup' : 'login'
   const from = safeReturnTo((location.state as { from?: unknown } | null)?.from)
   const reauthenticate = (location.state as { reauthenticate?: unknown } | null)?.reauthenticate === true
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [nic, setNic] = useState('')
+  const [phone, setPhone] = useState('')
   const [errors, setErrors] = useState<FieldErrors>({})
   const [formError, setFormError] = useState<string | undefined>()
+  const [registered, setRegistered] = useState(false)
   const [pending, setPending] = useState(false)
   const submitting = useRef(false)
   const busy = pending || status === 'loading'
@@ -73,13 +77,27 @@ export function LoginPage() {
       setErrors(next)
       return
     }
+    if (mode === 'signup' && !isDemo) {
+      const next: FieldErrors = {}
+      if (!/^(?:[0-9]{9}[VX]|[0-9]{12})$/.test(nic.trim().toUpperCase())) next.nic = t('auth.errors.nic')
+      if (!normalizePhone(phone)) next.phone_number = t('auth.errors.phone')
+      if (Object.keys(next).length) { setErrors(next); return }
+    }
     setErrors({})
 
     setPending(true)
     submitting.current = true
     try {
-      if (mode === 'signup') await signUp(signUpInputSchema.parse({ name, email, password }))
-      else await logIn(logInInputSchema.parse({ email, password }))
+      if (mode === 'signup') {
+        const result = await signUp(signUpInputSchema.parse({ name, email, password, ...(isDemo ? {} : { nic: nic.trim().toUpperCase(), phone_number: normalizePhone(phone) ?? '' }) }))
+        if (!result) {
+          setPassword('')
+          setRegistered(true)
+          setPending(false)
+          setParams({}, { replace: true, state: location.state })
+          return
+        }
+      } else await logIn(logInInputSchema.parse({ email, password }))
       // A new account has no contacts, so it always goes to the place where they are added: that is what the
       // account is for. Logging in returns you to where you were.
       void navigate(mode === 'signup' ? '/account' : (from ?? '/'), { replace: true })
@@ -115,14 +133,14 @@ export function LoginPage() {
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="rounded-lg lg:border lg:border-line/70 lg:bg-surface lg:p-10 lg:shadow-card">
           <div className="mx-auto flex max-w-lg flex-col gap-6 lg:mx-0">
-            {isDemo ? <div role="tablist" aria-label={t('auth.tabsA11y')} className="flex gap-1 rounded-full bg-mint-soft p-1">
+            {<div role="tablist" aria-label={t('auth.tabsA11y')} className="flex gap-1 rounded-full bg-mint-soft p-1">
               <button type="button" role="tab" disabled={busy} aria-selected={mode === 'login'} className={tabClass(mode === 'login')} onClick={() => { switchMode('login') }}>
                 {t('auth.loginTab')}
               </button>
               <button type="button" role="tab" disabled={busy} aria-selected={mode === 'signup'} className={tabClass(mode === 'signup')} onClick={() => { switchMode('signup') }}>
                 {t('auth.signupTab')}
               </button>
-            </div> : null}
+            </div>}
 
             <div className="flex flex-col gap-3">
               <h1 className="display-lg">{mode === 'signup' ? t('auth.signupTitle') : t('auth.loginTitle')}</h1>
@@ -133,6 +151,10 @@ export function LoginPage() {
               {mode === 'signup' ? (
                 <Field disabled={busy} label={t('auth.name')} value={name} onChange={(e) => { setName(e.target.value) }} error={errors.name} autoComplete="name" maxLength={60} />
               ) : null}
+              {mode === 'signup' && !isDemo ? <>
+                <Field disabled={busy || configurationError} label={t('auth.phone')} type="tel" value={phone} onChange={(e) => { setPhone(e.target.value) }} error={errors.phone_number} autoComplete="tel" />
+                <Field disabled={busy || configurationError} label={t('auth.nic')} value={nic} onChange={(e) => { setNic(e.target.value) }} error={errors.nic} autoComplete="off" maxLength={12} />
+              </> : null}
               <Field
                 label={t('auth.email')}
                 disabled={busy || configurationError}
@@ -153,6 +175,7 @@ export function LoginPage() {
                 error={errors.password}
                 autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               />
+              {registered && mode === 'login' ? <InfoNote text={t('auth.registrationSubmitted')} /> : null}
               {formError ? <InfoNote tone="error" text={formError} /> : null}
               {authError && !formError ? <InfoNote tone="error" text={t(authErrorKey(authError))} /> : null}
               <Button type="submit" loading={busy} disabled={configurationError}>{mode === 'signup' ? t('auth.signupSubmit') : t('auth.loginSubmit')}</Button>

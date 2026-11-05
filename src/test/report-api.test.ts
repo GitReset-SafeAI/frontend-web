@@ -54,7 +54,7 @@ describe('authenticated report transport (all requests mocked)', () => {
     expect(receipt.report.id).toBe(persisted.id)
     expect(receipt.report.RAPID_SUBMISSIONS).toBe(true)
     expect(receipt.demoAnalysis).toBeUndefined()
-    expect(mock.fetch).toHaveBeenCalledExactlyOnceWith('http://backend.test/api/v1/reports', expect.objectContaining({
+    expect(mock.fetch).toHaveBeenCalledExactlyOnceWith('/api/v1/reports', expect.objectContaining({
       method: 'POST', credentials: 'omit', redirect: 'error',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer mock-user-access-token' },
     }))

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // UI-facing models, not backend schemas. Auth adapters own session persistence;
-// real contact storage and the FastAPI authorization contract remain unimplemented.
+// real contacts use the authenticated backend adapter; demo contacts remain local.
 
 export const MAX_CONTACTS = 5
 
@@ -25,7 +25,11 @@ export const contactInputSchema = z.object({
 })
 export type ContactInput = z.infer<typeof contactInputSchema>
 
-export const emergencyContactSchema = contactInputSchema.extend({ id: z.string() })
+export const emergencyContactSchema = contactInputSchema.extend({
+  id: z.string(),
+  // Real contacts include a database slot. Older demo contacts use local array order.
+  slot: z.number().int().min(0).max(4).optional(),
+})
 export type EmergencyContact = z.infer<typeof emergencyContactSchema>
 
 export const logInInputSchema = z.object({
@@ -38,13 +42,15 @@ export const signUpInputSchema = z.object({
   name: z.string().trim().min(1).max(60),
   email: z.string().trim().pipe(z.email()),
   password: z.string().min(8),
+  nic: z.string().optional(),
+  phone_number: z.string().optional(),
 })
 export type SignUpInput = z.infer<typeof signUpInputSchema>
 
 export interface AuthService {
   // Resolves to the signed-in user, or null when there is no session.
   getSession(): Promise<User | null>
-  signUp(input: SignUpInput): Promise<User>
+  signUp(input: SignUpInput): Promise<User | null>
   logIn(input: LogInInput): Promise<User>
   logOut(): Promise<void>
   // Synchronous subscription; callbacks must not await other auth operations.

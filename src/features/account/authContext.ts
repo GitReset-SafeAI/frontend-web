@@ -9,7 +9,7 @@ export interface AuthContextValue {
   user: User | null
   error: ApiError | null
   logIn: (input: LogInInput) => Promise<User>
-  signUp: (input: SignUpInput) => Promise<User>
+  signUp: (input: SignUpInput) => Promise<User | null>
   logOut: () => Promise<void>
 }
 

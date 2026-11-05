@@ -1,11 +1,11 @@
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
 import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mock = vi.hoisted(() => ({
   getSession: vi.fn(),
-  signInWithPassword: vi.fn(),
+  setSession: vi.fn(),
   signOut: vi.fn(),
   unsubscribe: vi.fn(),
   listeners: new Set<(event: AuthChangeEvent, session: Session | null) => void>(),
@@ -17,10 +17,16 @@ const mock = vi.hoisted(() => ({
 }))
 
 vi.mock('../config/env', () => ({ env: mock.env }))
+vi.mock('../services/auth/signIn', () => ({
+  signIn: vi.fn(async () => ({
+    access_token: 'mock-access-token', refresh_token: 'mock-refresh-token',
+    token_type: 'bearer', expires_in: 3600,
+  })),
+}))
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({ auth: {
     getSession: mock.getSession,
-    signInWithPassword: mock.signInWithPassword,
+    setSession: mock.setSession,
     signOut: mock.signOut,
     onAuthStateChange: (listener: (event: AuthChangeEvent, session: Session | null) => void) => {
       mock.listeners.add(listener)
@@ -32,6 +38,9 @@ vi.mock('@supabase/supabase-js', () => ({
   } })),
 }))
 
+vi.mock('../features/emergency/phoneCall', () => ({ openPhoneCall: vi.fn() }))
+
+import { openPhoneCall } from '../features/emergency/phoneCall'
 import { createClient } from '@supabase/supabase-js'
 import { services, selectServices } from '../services'
 import { apiServices } from '../services/api'
@@ -39,6 +48,7 @@ import { ApiError } from '../services/api/ApiError'
 import { mockServices } from '../services/mocks'
 import { supabaseAuth } from '../services/auth/supabaseAuth'
 import { getSupabaseClient } from '../services/auth/supabaseClient'
+import { signIn } from '../services/auth/signIn'
 import { renderApp } from './renderApp'
 
 const realUser: User = {
@@ -47,7 +57,7 @@ const realUser: User = {
 }
 const session: Session = {
   user: realUser, access_token: 'mock-access-token', refresh_token: 'mock-refresh-token',
-  expires_in: 3600, token_type: 'bearer',
+  expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: 'bearer',
 }
 const restored = { data: { session }, error: null }
 const loggedOut = { data: { session: null }, error: null }
@@ -76,9 +86,12 @@ beforeEach(() => {
   mock.env.supabaseUrl = 'https://example.supabase.co'
   mock.env.supabasePublishableKey = 'sb_publishable_test_placeholder'
   mock.getSession.mockResolvedValue(loggedOut)
-  mock.signInWithPassword.mockResolvedValue(restored)
+  mock.setSession.mockResolvedValue(restored)
   mock.signOut.mockResolvedValue({ error: null })
+  vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response('[]', { status: 200 })))
 })
+
+afterEach(() => { vi.unstubAllGlobals() })
 
 describe('Supabase password login', () => {
   it('logs in through the existing form and preserves its home redirect', async () => {
@@ -86,21 +99,31 @@ describe('Supabase password login', () => {
     const user = await fillLogin()
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
     expect(await screen.findByRole('heading', { name: /know what has been reported/i })).toBeInTheDocument()
-    expect(mock.signInWithPassword).toHaveBeenCalledExactlyOnceWith({ email: 'person@example.com', password: 'test-password' })
+    expect(mock.setSession).toHaveBeenCalledExactlyOnceWith({ access_token: 'mock-access-token', refresh_token: 'mock-refresh-token' })
+    expect(signIn).toHaveBeenCalledExactlyOnceWith({ email: 'person@example.com', password: 'test-password' })
     expect(createClient).toHaveBeenCalledWith(mock.env.supabaseUrl, mock.env.supabasePublishableKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
     })
     expect(screen.getByRole('link', { name: /your account, nimali/i })).toBeInTheDocument()
   })
 
+  it('shows a backend credential rejection without installing a session', async () => {
+    vi.mocked(signIn).mockRejectedValueOnce(new ApiError('invalid-credentials', 'Invalid email or password.'))
+    renderApp('/login')
+    const user = await fillLogin()
+    await user.click(screen.getByRole('button', { name: /^log in$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/email or password is incorrect/i)
+    expect(mock.setSession).not.toHaveBeenCalled()
+  })
+
   it.each([
     [{ code: 'invalid_credentials' }, /email or password is incorrect/i],
     [{ code: 'email_not_confirmed' }, /confirm your email/i],
-    [{ status: 429 }, /too many login attempts/i],
+    [{ status: 429 }, /too many attempts/i],
     [{ name: 'AuthRetryableFetchError' }, /unable to reach authentication/i],
     [{ code: 'provider_failure', message: 'private provider detail' }, /something went wrong/i],
   ])('maps provider failure %j without exposing provider messages', async (error, message) => {
-    mock.signInWithPassword.mockResolvedValue({ data: { session: null }, error })
+    mock.setSession.mockResolvedValue({ data: { session: null }, error })
     renderApp('/login')
     const user = await fillLogin()
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
@@ -110,31 +133,48 @@ describe('Supabase password login', () => {
   })
 
   it('handles rejected network requests', async () => {
-    mock.signInWithPassword.mockRejectedValue(new TypeError('private network detail'))
+    mock.setSession.mockRejectedValue(new TypeError('private network detail'))
     renderApp('/login')
     const user = await fillLogin()
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/unable to reach authentication/i)
   })
 
-  it('keeps signup and demo controls out of real mode, including a signup URL', async () => {
+  it('shows registration without demo controls in real mode', async () => {
     renderApp('/login?mode=signup')
-    await fillLogin()
-    expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
-    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Your name')).not.toBeInTheDocument()
+    await waitFor(() => { expect(screen.getByLabelText('Your name')).toBeEnabled() })
+    expect(screen.getByRole('heading', { name: /create your account/i })).toBeInTheDocument()
     expect(screen.queryByText(/demo sign-in/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /use demo account/i })).not.toBeInTheDocument()
-    await expect(supabaseAuth.signUp({ name: 'Test', email: 'person@example.com', password: 'password1' })).rejects.toMatchObject({ kind: 'not-implemented' })
+  })
+
+  it('registers through the backend and returns to login', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
+    try {
+      renderApp('/login?mode=signup')
+      const user = userEvent.setup()
+      await waitFor(() => { expect(screen.getByLabelText('Your name')).toBeEnabled() })
+      await user.type(screen.getByLabelText('Your name'), 'Nimali')
+      await user.type(screen.getByLabelText('Phone number'), '0771234567')
+      await user.type(screen.getByLabelText('NIC number'), '200012300123')
+      await user.type(screen.getByLabelText('Email'), 'person@example.com')
+      await user.type(screen.getByLabelText('Password'), 'password123')
+      await user.click(screen.getByRole('button', { name: /^create account$/i }))
+      expect(await screen.findByText(/check your email for a confirmation link/i)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
+      expect(fetchMock).toHaveBeenCalledWith('/api/v1/authentication/sign-up', expect.objectContaining({
+        method: 'POST', body: JSON.stringify({ name: 'Nimali', email: 'person@example.com', password: 'password123', nic: '200012300123', phone_number: '+94771234567' }),
+      }))
+    } finally { fetchMock.mockRestore() }
   })
 
   it('disables the form during login and prevents repeated requests', async () => {
     const pending = deferred<typeof restored>()
-    mock.signInWithPassword.mockReturnValue(pending.promise)
+    mock.setSession.mockReturnValue(pending.promise)
     renderApp('/login')
     const user = await fillLogin()
     await user.dblClick(screen.getByRole('button', { name: /^log in$/i }))
-    expect(mock.signInWithPassword).toHaveBeenCalledTimes(1)
+    expect(mock.setSession).toHaveBeenCalledTimes(1)
     expect(screen.getByLabelText('Email')).toBeDisabled()
     expect(screen.getByLabelText('Password')).toBeDisabled()
     expect(screen.getByRole('button', { name: /^log in$/i })).toHaveAttribute('aria-busy', 'true')
@@ -200,12 +240,12 @@ describe('session lifecycle and redirects', () => {
     mock.getSession.mockResolvedValue(restored)
     const { queryClient } = renderApp('/account')
     await screen.findByRole('heading', { name: /hello, nimali/i })
-    queryClient.setQueryData(['contacts', realUser.id], [{ name: 'Private contact' }])
+    queryClient.setQueryData(['contacts', realUser.id], [{ id: 'private-1', name: 'Private contact', phone: '+94771234567' }])
     await emit('TOKEN_REFRESHED', session)
     expect(queryClient.getQueryData(['contacts', realUser.id])).toBeDefined()
     await emit('SIGNED_IN', { ...session, user: { ...realUser, id: 'another-user' } })
     expect(queryClient.getQueryData(['contacts', realUser.id])).toBeUndefined()
-    queryClient.setQueryData(['contacts', 'another-user'], [{ name: 'Another private contact' }])
+    queryClient.setQueryData(['contacts', 'another-user'], [{ id: 'private-2', name: 'Another private contact', phone: '+94777654321' }])
     await emit('SIGNED_OUT', null)
     expect(queryClient.getQueryData(['contacts', 'another-user'])).toBeUndefined()
   })
@@ -218,7 +258,7 @@ describe('session lifecycle and redirects', () => {
     expect(screen.queryByRole('heading', { name: /welcome back/i })).not.toBeInTheDocument()
     await act(async () => { pending.resolve(restored) })
     expect(await screen.findByRole('heading', { name: /hello, nimali/i })).toBeInTheDocument()
-    expect(screen.getByText(/contact storage and SOS contact calling are not connected/i)).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^add a contact$/i })).toBeEnabled()
   })
 
   it('redirects a restored user away from login', async () => {
@@ -286,7 +326,7 @@ describe('session lifecycle and redirects', () => {
 
   it('does not revive a session when sign-out arrives before login completes', async () => {
     const pending = deferred<typeof restored>()
-    mock.signInWithPassword.mockReturnValue(pending.promise)
+    mock.setSession.mockReturnValue(pending.promise)
     renderApp('/login')
     const user = await fillLogin()
     await user.click(screen.getByRole('button', { name: /^log in$/i }))
@@ -337,7 +377,7 @@ describe('configuration and service isolation', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY/)
     expect(screen.getByRole('button', { name: /^log in$/i })).toBeDisabled()
     expect(mock.getSession).not.toHaveBeenCalled()
-    expect(mock.signInWithPassword).not.toHaveBeenCalled()
+    expect(mock.setSession).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: /use demo account/i })).not.toBeInTheDocument()
   })
 
@@ -370,7 +410,7 @@ describe('configuration and service isolation', () => {
   it('uses one client with SDK session persistence and refresh', () => {
     expect(getSupabaseClient()).toBe(getSupabaseClient())
     // The mock client has the SDK auth surface; no request has been made.
-    expect(mock.signInWithPassword).not.toHaveBeenCalled()
+    expect(mock.setSession).not.toHaveBeenCalled()
   })
 
   it('keeps mock data independent and prevents real users from accessing demo contacts', async () => {
@@ -380,10 +420,91 @@ describe('configuration and service isolation', () => {
     expect(services.reports.transcribeVoice).toBe(apiServices.reports.transcribeVoice)
     expect(services.safetyMap).toBe(mockServices.safetyMap)
     expect(services.contacts).toBe(apiServices.contacts)
-    await expect(services.contacts.list()).rejects.toMatchObject({ kind: 'not-implemented' })
-    await expect(services.contacts.add({ name: 'Test', phone: '+94771234567' })).rejects.toMatchObject({ kind: 'not-implemented' })
+    await expect(services.contacts.list()).rejects.toMatchObject({ kind: 'unauthorized' })
+    await expect(services.contacts.add({ name: 'Test', phone: '+94771234567' })).rejects.toMatchObject({ kind: 'unauthorized' })
     expect(selectServices('api', 'demo').auth).toBe(mockServices.auth)
     expect(selectServices('mock', 'supabase').auth).toBe(supabaseAuth)
     expect(selectServices('mock', 'demo').contacts).toBe(mockServices.contacts)
+  })
+})
+
+
+describe('real emergency contacts', () => {
+  it('adds a contact directly from Emergency and reloads it from the backend', async () => {
+    mock.getSession.mockResolvedValue(restored)
+    const rows: { id: string; name: string; phone: string; slot: number }[] = []
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, options: RequestInit) => {
+      if (options.method === 'POST') {
+        const input = JSON.parse(options.body as string)
+        const contact = { id: 'contact-1', slot: 0, ...input }
+        rows.push(contact)
+        return new Response(JSON.stringify(contact), { status: 201 })
+      }
+      return new Response(JSON.stringify(rows), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const view = renderApp('/emergency')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /^add a contact$/i }))
+    await user.type(screen.getByLabelText(/^name$/i), 'Amma')
+    await user.type(screen.getByLabelText(/^phone number$/i), '077 123 4567')
+    await user.click(screen.getByRole('button', { name: /^save contact$/i }))
+    expect(await screen.findByRole('link', { name: /call amma/i })).toHaveAttribute('href', 'tel:+94771234567')
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/emergency-contacts', expect.objectContaining({
+      method: 'POST', credentials: 'omit', cache: 'no-store',
+      body: JSON.stringify({ name: 'Amma', phone: '+94771234567' }),
+    }))
+    const postOptions = fetchMock.mock.calls.find(([, options]) => options.method === 'POST')?.[1]
+    expect(postOptions.headers.get('Authorization')).toBe('Bearer mock-access-token')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    view.unmount()
+    renderApp('/emergency')
+    expect(await screen.findByRole('link', { name: /call amma/i })).toHaveAttribute('href', 'tel:+94771234567')
+    expect(screen.queryByText(/saved only in this browser/i)).not.toBeInTheDocument()
+  })
+
+  it('keeps the entered contact in the form when saving fails', async () => {
+    mock.getSession.mockResolvedValue(restored)
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (_url: string, options: RequestInit) =>
+      options.method === 'POST' ? new Response('{}', { status: 503 }) : new Response('[]', { status: 200 })))
+    renderApp('/emergency')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /^add a contact$/i }))
+    await user.type(screen.getByLabelText(/^name$/i), 'Amma')
+    await user.type(screen.getByLabelText(/^phone number$/i), '0771234567')
+    await user.click(screen.getByRole('button', { name: /^save contact$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn't save/i)
+    expect(screen.getByLabelText(/^phone number$/i)).toHaveValue('0771234567')
+    expect(screen.getByRole('button', { name: /^save contact$/i })).toBeEnabled()
+    expect(screen.queryByRole('link', { name: /call amma/i })).not.toBeInTheDocument()
+  })
+})
+
+
+describe('slot-zero SOS calls', () => {
+  it('targets slot zero even when another contact is returned first', async () => {
+    mock.getSession.mockResolvedValue(restored)
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response(JSON.stringify([
+      { id: 'slot-two', slot: 2, name: 'Other', phone: '+94777654321' },
+      { id: 'slot-zero', slot: 0, name: 'Amma', phone: '+94771234567' },
+    ]), { status: 200 })))
+    renderApp('/emergency')
+    const user = userEvent.setup()
+    await screen.findByRole('link', { name: /call amma/i })
+    await user.click(screen.getByRole('button', { name: /sos\. emergency help/i }))
+    expect(await screen.findByRole('heading', { name: /phone dialer opened/i })).toBeInTheDocument()
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument()
+    expect(openPhoneCall).toHaveBeenCalledExactlyOnceWith('+94771234567')
+  })
+
+  it('does not open the dialer or substitute another contact when slot zero is absent', async () => {
+    mock.getSession.mockResolvedValue(restored)
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => new Response(JSON.stringify([
+      { id: 'slot-two', slot: 2, name: 'Other', phone: '+94777654321' },
+    ]), { status: 200 })))
+    renderApp('/sos')
+    expect(await screen.findByRole('heading', { name: /add an emergency contact first/i })).toBeInTheDocument()
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument()
+    expect(openPhoneCall).not.toHaveBeenCalled()
   })
 })

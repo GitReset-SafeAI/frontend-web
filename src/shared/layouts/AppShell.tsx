@@ -61,7 +61,7 @@ function SosPill() {
   )
 }
 
-// Desktop header: "Log in" until you are, then your initial. On phones this lives in the tab bar instead.
+// Keep account access visible in the header at every screen size.
 function AccountButton() {
   const { t } = useTranslation('account')
   const { user } = useAuth()
@@ -72,22 +72,31 @@ function AccountButton() {
       <Link
         to="/account"
         aria-label={t('nav.accountA11y', { name: user.name })}
-        className="hidden size-12 place-items-center rounded-full bg-navy text-lg font-bold uppercase text-white shadow-card hover:bg-navy-hover lg:grid"
+        className="grid size-12 shrink-0 place-items-center rounded-full bg-navy text-lg font-bold uppercase text-white shadow-card hover:bg-navy-hover"
       >
         {user.name.trim().charAt(0) || <UserRound className="size-5" aria-hidden />}
       </Link>
     )
   }
   return (
+    <>
     <Link
       to="/login"
       state={{ from: pathname }}
       aria-label={t('nav.login')}
-      className="hidden min-h-12 items-center gap-2 rounded-full border-2 border-navy px-3 font-semibold text-navy hover:bg-mint-soft lg:inline-flex xl:px-5"
+      className="inline-flex min-h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border-2 border-navy px-3 font-semibold text-navy hover:bg-mint-soft xl:px-5"
     >
-      <UserRound className="size-5" aria-hidden />
-      <span className="hidden xl:inline">{t('nav.login')}</span>
+      <UserRound className="hidden size-5 sm:block" aria-hidden />
+      <span>{t('nav.login')}</span>
     </Link>
+    <Link
+      to="/login?mode=signup"
+      state={{ from: pathname }}
+      className="inline-flex min-h-12 shrink-0 items-center whitespace-nowrap rounded-full bg-navy px-4 font-semibold text-white hover:bg-navy-hover"
+    >
+      {t('nav.signIn')}
+    </Link>
+    </>
   )
 }
 
@@ -147,7 +156,7 @@ export function AppShell() {
       </a>
 
       <header className="sticky top-0 z-20 border-b border-line/70 bg-screen/85 backdrop-blur-md">
-        <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:flex-nowrap">
           <Link to="/" className="rounded-sm">
             <BrandLogo />
           </Link>
@@ -158,7 +167,7 @@ export function AppShell() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             {showSosPill ? <SosPill /> : null}
             <LanguageSwitcher />
             <AccountButton />

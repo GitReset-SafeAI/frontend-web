@@ -5,7 +5,7 @@ import { ApiError } from './ApiError'
 import { createApiClient } from './client'
 
 // Backend upload deadline is 30 s and provider deadline is 30 s by default.
-const client = createApiClient(env.apiBaseUrl, 65_000)
+const client = createApiClient(import.meta.env.DEV ? '/' : env.apiBaseUrl, 65_000)
 
 export async function transcribeVoice(audio?: Blob, signal?: AbortSignal): Promise<VoiceTranscript> {
   if (!audio || audio.size <= 44) throw new ApiError('validation', 'Record some audio first.', 422)

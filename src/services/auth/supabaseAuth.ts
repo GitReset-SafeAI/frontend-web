@@ -3,6 +3,10 @@ import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { ApiError } from '../api/ApiError'
 import type { AuthService, User } from '../contracts'
 import { getSupabaseClient } from './supabaseClient'
+import { signIn } from './signIn'
+import { createApiClient } from '../api/client'
+import { env } from '../../config/env'
+import { z } from 'zod'
 
 function mapUser(user: SupabaseUser | undefined): User | null {
   if (!user) return null
@@ -35,7 +39,12 @@ export const supabaseAuth: AuthService = {
   },
   async logIn({ email, password }) {
     try {
-      const { data, error } = await getSupabaseClient().auth.signInWithPassword({ email: email.trim(), password })
+      const client = getSupabaseClient()
+      const tokens = await signIn({ email, password })
+      const { data, error } = await client.auth.setSession({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+      })
       if (error) throw error
       const user = mapUser(data.session?.user)
       if (!user) throw new ApiError('unauthorized', 'No authenticated session was returned.')
@@ -48,8 +57,21 @@ export const supabaseAuth: AuthService = {
       if (error) throw error
     } catch (error) { throw toAuthError(error) }
   },
-  async signUp() {
-    throw new ApiError('not-implemented', 'Real signup is not available in this phase.')
+  async signUp(input) {
+    try {
+      getSupabaseClient()
+      const baseUrl = import.meta.env.DEV ? '/' : (env.apiBaseUrl || '/')
+      await createApiClient(baseUrl, 15_000).request('/api/v1/authentication/sign-up', z.undefined(), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input), credentials: 'omit', cache: 'no-store', redirect: 'error',
+      })
+      return null
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 429) {
+        throw new ApiError('rate-limit', 'Too many registration attempts. Please wait before trying again.')
+      }
+      throw toAuthError(error)
+    }
   },
   subscribe(listener) {
     try {

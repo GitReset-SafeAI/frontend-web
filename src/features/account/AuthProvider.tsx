@@ -72,6 +72,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const request = ++revision.current
     const user = await services.auth.signUp(input)
     if (!mounted.current) throw new ApiError('unauthorized', 'Authentication was interrupted.')
+    if (!user) return null
     if (revision.current === request) applyUser(user)
     else if (currentUser.current?.id !== user.id) throw new ApiError('unauthorized', 'The session changed during signup.')
     return user

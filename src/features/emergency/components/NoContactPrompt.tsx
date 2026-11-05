@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { env } from '../../../config/env'
@@ -10,10 +11,11 @@ interface NoContactPromptProps {
   returnTo: string
   // On the red SOS screen the buttons use the light variants.
   onRed?: boolean
+  addAction?: ReactNode
 }
 
 // SOS has nobody to call yet. Say so plainly and offer the one next step, instead of a dead end.
-export function NoContactPrompt({ reason, returnTo, onRed = false }: NoContactPromptProps) {
+export function NoContactPrompt({ reason, returnTo, onRed = false, addAction }: NoContactPromptProps) {
   const { t } = useTranslation('emergency')
   const state = { from: returnTo }
 
@@ -23,7 +25,7 @@ export function NoContactPrompt({ reason, returnTo, onRed = false }: NoContactPr
       {env.authMode === 'demo' ? <ButtonLink to="/login?mode=signup" state={state} variant={onRed ? 'outlineLight' : 'secondary'}>{t('none.signup')}</ButtonLink> : null}
     </>
   ) : (
-    <ButtonLink to="/account" variant={onRed ? 'light' : 'primary'}>{t('none.add')}</ButtonLink>
+    addAction ?? <ButtonLink to="/account" variant={onRed ? 'light' : 'primary'}>{t('none.add')}</ButtonLink>
   )
   const text = reason === 'loggedOut' ? t('none.loggedOut') : t('none.noContacts')
 

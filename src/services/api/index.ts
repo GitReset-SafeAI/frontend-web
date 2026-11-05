@@ -8,6 +8,7 @@ import { ApiError } from './ApiError'
 import { submitReport } from './reports'
 import { transcribeVoice } from './transcriptions'
 import { createApiClient } from './client'
+import { contacts } from './contacts'
 
 // Use the frontend's /api proxy to avoid requiring backend CORS changes.
 const client = createApiClient('/')
@@ -40,13 +41,7 @@ export const apiServices: AppServices = {
     logIn: notAgreed('authentication'),
     logOut: notAgreed('authentication'),
   },
-  contacts: {
-    list: notAgreed('emergency contacts'),
-    add: notAgreed('emergency contacts'),
-    update: notAgreed('emergency contacts'),
-    remove: notAgreed('emergency contacts'),
-    makePrimary: notAgreed('emergency contacts'),
-  },
+  contacts,
   // Geocoding is proxied by the backend, so the provider stays off the client.
   places: {
     async searchPlaces({ query, limit = 6 }) {

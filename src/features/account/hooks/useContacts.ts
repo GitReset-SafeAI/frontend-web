@@ -7,7 +7,7 @@ import { queryKeys } from '../../../services/queryKeys'
 import { useAuth } from '../authContext'
 
 // Mock data is local, so the demo also works offline.
-const networkMode = env.dataMode === 'mock' ? 'always' : 'online'
+const networkMode = env.authMode === 'demo' && env.dataMode === 'mock' ? 'always' : 'online'
 
 // Contacts are fetched only for a signed-in user, and cached per user so one person's list is never shown to another.
 export function useContacts() {

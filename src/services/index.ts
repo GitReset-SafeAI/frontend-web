@@ -18,10 +18,9 @@ export function selectServices(mode: AppEnvironment['dataMode'], authMode: AppEn
       transcribeVoice: authMode === 'supabase' ? apiServices.reports.transcribeVoice : data.reports.transcribeVoice,
     },
     // Real users must never read or write contacts under an old demo session.
-    // These fail explicitly until contact persistence/authorization is implemented.
     contacts: authMode === 'demo' ? data.contacts : apiServices.contacts,
   }
 }
 
 export const services = selectServices(env.dataMode, env.authMode)
-export const contactsAvailable = env.authMode === 'demo' && env.dataMode === 'mock'
+export const contactsAvailable = env.authMode === 'supabase' || (env.authMode === 'demo' && env.dataMode === 'mock')

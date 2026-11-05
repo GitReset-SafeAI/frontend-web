@@ -123,7 +123,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_PUBLIC_KEY
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-With `VITE_AUTH_MODE=supabase`, login uses the Supabase project, and report creation and voice transcription go to the backend with the user's access token as a Bearer token. The backend must have its own Supabase and Groq credentials configured. The publishable key is never used as a backend token.
+With `VITE_AUTH_MODE=supabase`, registration posts name, email, password, NIC and phone number to `POST /api/v1/authentication/sign-up`, and login posts email and password to `POST /api/v1/authentication/sign-in`. Apply the backend Supabase migrations before enabling registration: the profile trigger creates `user_profiles` when an Auth user is created. Configure the backend's `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` for the same project as the frontend, and enable email signup in Supabase. When email confirmation is enabled, users must confirm their email before logging in. The Supabase browser SDK persists and refreshes the login session.
+
+During development, Vite forwards `/api` to `VITE_API_BASE_URL` (default `http://127.0.0.1:8001`). Production uses the configured API base URL, or a same-origin `/api` route if it is omitted. Report creation and voice transcription use the user's access token as a Bearer token. The backend must have its own Supabase and Groq credentials configured. The publishable key is never used as a backend token.
 
 - Find the URL and publishable key in the Supabase dashboard under **Connect** or **Settings > API Keys**.
 - The client accepts public publishable keys (`sb_publishable_...`) only. **Never put a secret or service-role key in any `VITE_` variable**, because those values are shipped to the browser.

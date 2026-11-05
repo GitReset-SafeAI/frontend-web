@@ -31,7 +31,8 @@ describe('database map integration', () => {
       env.safetyMapMode = 'api'
       expect(selectServices('mock', 'demo').safetyMap).toBe(apiServices.safetyMap)
       expect(selectServices('mock', 'demo').places).toBe(apiServices.places)
-      expect(selectServices('mock', 'demo').reports).toBe(mockServices.reports)
+      expect(selectServices('mock', 'demo').reports.submitReport).toBe(mockServices.reports.submitReport)
+      expect(selectServices('mock', 'demo').reports.transcribeVoice).toBe(mockServices.reports.transcribeVoice)
     } finally { env.safetyMapMode = previousMode }
   })
 

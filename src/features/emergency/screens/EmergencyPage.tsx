@@ -1,34 +1,46 @@
-import { Hand, PhoneCall, PhoneOutgoing, Timer } from 'lucide-react'
+import { Hand, PhoneCall, PhoneOutgoing } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { Button } from '../../../shared/components/Button'
+import { Spinner } from '../../../shared/components/Spinner'
+import { useContacts } from '../../account/hooks/useContacts'
+import { AddEmergencyContact } from '../components/AddEmergencyContact'
 import { formatPhone } from '../../account/phone'
 import { InfoNote } from '../../../shared/components/InfoNote'
 import { NoContactPrompt } from '../components/NoContactPrompt'
 import { SosButton } from '../components/SosButton'
 import { useSosContacts } from '../hooks/useSosContacts'
-import { SOS_COUNTDOWN_SECONDS } from '../sos'
+import { openPhoneCall } from '../phoneCall'
 
 // One giant SOS button, and nothing competing with it. The timeline beside it removes any surprise:
 // people should know exactly what a tap does before they need it, and who it will call.
 export function EmergencyPage() {
   const { t } = useTranslation('emergency')
+  const { t: ta } = useTranslation('account')
   const navigate = useNavigate()
   const sos = useSosContacts()
-  const params = { seconds: SOS_COUNTDOWN_SECONDS }
+  const contacts = useContacts()
   const steps = [
     { icon: Hand, text: t('timeline.tap') },
-    { icon: Timer, text: t('timeline.wait', params) },
     { icon: PhoneOutgoing, text: sos.primary ? t('timeline.callNamed', { name: sos.primary.name }) : t('timeline.callGeneric') },
   ]
+
+  const startSos = () => {
+    if (sos.state !== 'ready') { void navigate('/sos'); return }
+    // Keep this synchronous with the tap so mobile browsers retain user activation.
+    let phase: 'called' | 'failed' = 'called'
+    try { openPhoneCall(sos.primary.phone) } catch { phase = 'failed' }
+    void navigate('/sos', { state: { sosCall: { phase } } })
+  }
 
   return (
     <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-2 lg:gap-16">
       <div className="flex flex-col items-center gap-8 text-center">
-        <SosButton onPress={() => { void navigate('/sos') }} />
+        <SosButton onPress={startSos} />
         <div className="flex flex-col items-center gap-2">
           <h1 className="display-md">{t('homeCaption')}</h1>
-          <p className="m-0 max-w-sm text-ink-muted">{t('homeHint', params)}</p>
+          <p className="m-0 max-w-sm text-ink-muted">{t('homeHint')}</p>
         </div>
       </div>
 
@@ -69,6 +81,7 @@ export function EmergencyPage() {
                 </li>
               ))}
             </ul>
+            <AddEmergencyContact />
             <Link to="/account" className="inline-flex min-h-11 w-fit items-center rounded-full px-2 font-semibold text-navy underline underline-offset-4">
               {t('contacts.manage')}
             </Link>
@@ -76,9 +89,15 @@ export function EmergencyPage() {
         ) : null}
 
         {sos.state === 'loggedOut' || sos.state === 'noContacts' ? (
-          <NoContactPrompt reason={sos.state} returnTo="/emergency" />
+          <NoContactPrompt reason={sos.state} returnTo="/emergency" addAction={<AddEmergencyContact />} />
         ) : null}
 
+        {sos.state === 'loading' ? <Spinner label={ta('account.loading')} /> : null}
+        {sos.state === 'error' ? <div className="flex flex-col gap-3">
+          <InfoNote tone="error" text={ta('contacts.errors.generic')} />
+          <Button onClick={() => { void contacts.refetch() }}>{ta('contacts.retry')}</Button>
+          <Link to="/login" state={{ from: '/emergency', reauthenticate: true }} className="font-semibold underline">{t('none.login')}</Link>
+        </div> : null}
         <InfoNote text={t('disclaimer')} />
       </div>
     </div>
