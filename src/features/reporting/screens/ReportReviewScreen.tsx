@@ -1,4 +1,4 @@
-import { Bot, Lock, Timer } from 'lucide-react'
+import { Lock, Timer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate } from 'react-router-dom'
 
@@ -79,7 +79,7 @@ export function ReportReviewScreen() {
   return (
     <StepLayout
       step={{ current: 4, total: 4 }}
-      aside={<ReportAside />}
+      aside={<ReportAside hideAiNote />}
       title={t('review.title')}
       subtitle={t('review.subtitle')}
       footer={(
@@ -106,10 +106,7 @@ export function ReportReviewScreen() {
       <SummarySection title={t('review.whenWhere')} editLabel={tc('edit')} onEdit={() => { void navigate('/report/when') }} lines={whenWhere.length ? whenWhere : [notProvided]} />
       <SummarySection title={t('review.extra')} editLabel={tc('edit')} onEdit={() => { void navigate('/report/details') }} lines={extra.length ? extra : [notProvided]} />
 
-      <div className="flex flex-col gap-3">
-        <InfoNote icon={Lock} text={t('review.privacy')} />
-        <InfoNote icon={Bot} text={t('review.aiNote')} />
-      </div>
+      <InfoNote icon={Lock} text={t('review.privacy')} />
     </StepLayout>
   )
 }
