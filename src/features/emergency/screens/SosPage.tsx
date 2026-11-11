@@ -1,30 +1,31 @@
 import { PhoneCall, PhoneOff } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import type { EmergencyContact } from '../../../services/contracts'
 import { Button } from '../../../shared/components/Button'
+import { useAuth } from '../../account/authContext'
 import { formatPhone } from '../../account/phone'
 import { NoContactPrompt } from '../components/NoContactPrompt'
 import { useSosContacts } from '../hooks/useSosContacts'
 import { openPhoneCall } from '../phoneCall'
+import { openSmsDraft } from '../sms'
+import { useEmergencyLocation } from '../hooks/useEmergencyLocation'
 
-type Phase = 'dialing' | 'called' | 'failed'
 
 function Actions({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto flex w-full max-w-md flex-col gap-3 p-6">{children}</div>
 }
 
-// Open the primary contact immediately; the device controls call confirmation.
+// SOS presents Call and Send location. Only an explicit choice opens a phone app.
 export function SosPage() {
   const { t } = useTranslation('emergency')
   const { t: tc } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const sos = useSosContacts()
-  const callPhase = (location.state as { sosCall?: { phase?: unknown } } | null)?.sosCall?.phase
-  const initialPhase = callPhase === 'called' || callPhase === 'failed' ? callPhase : undefined
+  const { user } = useAuth()
 
   const close = useCallback(() => {
     // `default` means this page was opened directly, so there is nothing to go back to.
@@ -63,78 +64,63 @@ export function SosPage() {
         </>
       ) : null}
 
-      {sos.state === 'ready' ? <SosFlow initialPhase={initialPhase} primary={sos.primary} contacts={sos.contacts} onClose={close} /> : null}
+      {sos.state === 'ready' ? <SosFlow key={user?.id} primary={sos.primary} contacts={sos.contacts} onClose={close} /> : null}
     </div>
   )
 }
 
 interface SosFlowProps {
-  initialPhase?: Phase
   primary: EmergencyContact
   contacts: EmergencyContact[]
   onClose: () => void
 }
 
-// Skip a duplicate call when Emergency already opened the dialer in its click handler.
-function SosFlow({ primary, contacts, onClose, initialPhase = 'dialing' }: SosFlowProps) {
+function SosFlow({ primary, contacts, onClose }: SosFlowProps) {
   const { t } = useTranslation('emergency')
-  const { t: tw } = useTranslation('web')
-  const [target] = useState(primary)
-  const [phase, setPhase] = useState<Phase>(initialPhase)
-  const autoDialStarted = useRef(initialPhase !== 'dialing')
-  const [dialled, setDialled] = useState<EmergencyContact>(target)
+  const [selectedId, setSelectedId] = useState(primary.id)
+  const [callError, setCallError] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const tracking = useEmergencyLocation()
+  const selected = contacts.find((contact) => contact.id === selectedId) ?? primary
 
-  const dial = useCallback((contact: EmergencyContact) => {
-    setDialled(contact)
-    setPhase('dialing')
-    try {
-      // A tel: link only does something on devices with a phone app; the page says so below.
-      openPhoneCall(contact.phone)
-      setPhase('called')
-    } catch {
-      setPhase('failed')
-    }
-  }, [])
-
-  useEffect(() => {
-    // A direct /sos visit also opens once, including under StrictMode effect replay.
-    if (autoDialStarted.current) return
-    autoDialStarted.current = true
-    dial(target)
-  }, [dial, target])
-
-  const ended = phase === 'called' || phase === 'failed'
-  const others = contacts.filter((contact) => contact.id !== dialled.id)
-  const number = formatPhone(dialled.phone)
-
-  return (
-    <>
-      {phase === 'dialing' ? (
-        <div className="flex flex-1 items-center justify-center p-6">
-          <p role="status" className="m-0 text-2xl font-semibold">{t('dialingTitle')}</p>
-        </div>
-      ) : null}
-
-      {ended ? (
-        <>
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-            {phase === 'called' ? <PhoneCall className="size-[72px]" aria-hidden /> : <PhoneOff className="size-[72px]" aria-hidden />}
-            <h1 className="display-md text-white" role="status">{phase === 'called' ? t('calledTitle') : t('failedTitle')}</h1>
-            <p className="m-0 max-w-md text-lg">{phase === 'called' ? t('calledBody') : t('failedBody', { number })}</p>
-            {/* Non-breaking spaces keep the number on one line. */}
-            {phase === 'called' ? <p className="m-0 max-w-md">{tw('sos.desktopHint', { number: number.replace(/ /g, '\u00a0') })}</p> : null}
-          </div>
-          <Actions>
-            <Button variant="light" onClick={() => { dial(dialled) }}>{t('callAgain', { name: dialled.name })}</Button>
-            {others.map((contact) => (
-              <Button key={contact.id} variant="outlineLight" onClick={() => { dial(contact) }}>
-                {t('callContact', { name: contact.name })}
-              </Button>
-            ))}
-            <Button variant="textLight" onClick={onClose}>{t('close')}</Button>
-          </Actions>
-        </>
-      ) : null}
-    </>
-  )
+  const call = () => {
+    try { openPhoneCall(selected.phone); setCallError(false) } catch { setCallError(true) }
+  }
+  const copy = async () => {
+    if (!tracking.message) return
+    try { await navigator.clipboard.writeText(tracking.message); setCopied(true) } catch { setCopied(false) }
+  }
+  return <>
+    <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-5 px-6 py-8">
+      <h1 className="display-md text-white">{t('sms.choose')}</h1>
+      <label className="flex flex-col gap-2 font-semibold">
+        {t('sms.contact')}
+        <select value={selected.id} onChange={(event) => { setSelectedId(event.target.value); setCopied(false) }}
+          disabled={tracking.busy} className="min-h-12 rounded-lg border-2 border-white bg-white px-4 text-navy">
+          {contacts.map((contact) => <option key={contact.id} value={contact.id}>{contact.name} — {formatPhone(contact.phone)}</option>)}
+        </select>
+      </label>
+      <Button variant="light" icon={<PhoneCall className="size-5" aria-hidden />} onClick={call}>{t('sms.call')}</Button>
+      <Button variant="outlineLight" loading={tracking.busy} onClick={() => { void tracking.send(selected.phone) }}>
+        {tracking.busy ? t('sms.preparing') : t('sms.sendLocation')}
+      </Button>
+      {callError ? <p role="alert">{t('failedBody', { number: formatPhone(selected.phone) })}</p> : null}
+      {tracking.error ? <p role="alert">{t('sms.errors.' + tracking.error)}</p> : null}
+      {tracking.message ? <>
+        <p className="m-0" role="status">{t('sms.draftReady')}</p>
+        <label className="flex flex-col gap-2">
+          {t('sms.preview')}
+          <textarea readOnly rows={5} value={tracking.message} className="w-full rounded-lg bg-white p-3 text-navy" />
+        </label>
+        <Button variant="light" onClick={() => { openSmsDraft(selected.phone, tracking.message!) }}>{t('sms.reopen')}</Button>
+        {typeof navigator.clipboard?.writeText === 'function' ? <Button variant="outlineLight" onClick={() => { void copy() }}>{t(copied ? 'sms.copied' : 'sms.copy')}</Button> : null}
+      </> : null}
+      {tracking.share ? <>
+        <p className="m-0 text-sm">{t('sms.sharingNote')}</p>
+        <Button variant="outlineLight" disabled={tracking.busy} onClick={() => { void tracking.stop() }}>{t('sms.stop')}</Button>
+      </> : null}
+      <p className="m-0 text-sm">{t('sms.costNote')}</p>
+      <Button variant="textLight" onClick={onClose}>{t('close')}</Button>
+    </div>
+  </>
 }

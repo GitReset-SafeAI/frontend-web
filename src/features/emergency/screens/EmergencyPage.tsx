@@ -11,7 +11,6 @@ import { InfoNote } from '../../../shared/components/InfoNote'
 import { NoContactPrompt } from '../components/NoContactPrompt'
 import { SosButton } from '../components/SosButton'
 import { useSosContacts } from '../hooks/useSosContacts'
-import { openPhoneCall } from '../phoneCall'
 
 // One giant SOS button, and nothing competing with it. The timeline beside it removes any surprise:
 // people should know exactly what a tap does before they need it, and who it will call.
@@ -26,13 +25,7 @@ export function EmergencyPage() {
     { icon: PhoneOutgoing, text: sos.primary ? t('timeline.callNamed', { name: sos.primary.name }) : t('timeline.callGeneric') },
   ]
 
-  const startSos = () => {
-    if (sos.state !== 'ready') { void navigate('/sos'); return }
-    // Keep this synchronous with the tap so mobile browsers retain user activation.
-    let phase: 'called' | 'failed' = 'called'
-    try { openPhoneCall(sos.primary.phone) } catch { phase = 'failed' }
-    void navigate('/sos', { state: { sosCall: { phase } } })
-  }
+  const startSos = () => { void navigate('/sos') }
 
   return (
     <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-2 lg:gap-16">

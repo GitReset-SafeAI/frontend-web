@@ -1,9 +1,9 @@
 {
   "homeCaption": "Tap for emergency help",
-  "homeHint": "Opens your emergency contact in your phone dialer immediately. Confirm the call on your phone.",
+  "homeHint": "Choose Call or Send location. Your phone asks you to confirm the call or send the SMS.",
   "sosLabel": "SOS",
   "sosA11yLabel": "SOS. Emergency help",
-  "sosA11yHint": "Immediately opens your emergency contact in the phone dialer.",
+  "sosA11yHint": "Opens Call and Send location options for your emergency contact.",
   "disclaimer": "SafeStep does not alert anyone for you. This places a call from your phone to your emergency contact.",
   "dialingTitle": "Opening your phone…",
   "calledTitle": "Phone dialer opened",
@@ -16,8 +16,8 @@
   "timeline": {
     "title": "What happens when you tap",
     "tap": "You tap SOS",
-    "callNamed": "Your phone opens the dialer for {{name}}",
-    "callGeneric": "Your phone opens the dialer for your emergency contact"
+    "callNamed": "Choose Call or Send location to {{name}}",
+    "callGeneric": "Choose Call or Send location to your emergency contact"
   },
   "contacts": {
     "title": "Your emergency contacts",
@@ -30,5 +30,36 @@
     "login": "Log in",
     "signup": "Create account",
     "add": "Add a contact"
+  },
+  "sms": {
+    "choose": "How would you like to get help?",
+    "contact": "Emergency contact",
+    "call": "Call",
+    "sendLocation": "Send location",
+    "preparing": "Getting location and preparing SMS…",
+    "draftReady": "SMS draft ready. Review it and press Send in your Messages app. We cannot confirm whether it was sent.",
+    "preview": "Message preview",
+    "reopen": "Open SMS draft",
+    "copy": "Copy message",
+    "copied": "Copied",
+    "sharingNote": "Keep this page open and return after sending. Location updates can pause while Messages is open or your phone is locked. Sharing expires after 30 minutes.",
+    "stop": "Stop sharing location",
+    "costNote": "Your mobile plan’s SMS charges may apply. The recipient can open the tracking link in a browser.",
+    "trackingTitle": "Shared emergency location",
+    "loading": "Loading shared location…",
+    "ended": "This location share has ended, expired, or is unavailable.",
+    "updated": "Last updated: {{time}}",
+    "stale": "Updates have paused. This is the last received location, not a confirmed current position.",
+    "accuracy": "Reported GPS accuracy: approximately {{metres}} metres.",
+    "expires": "Sharing expires: {{time}}",
+    "viewerNote": "Only the latest shared position is shown. Updates depend on the sender’s connection and their tracking page remaining active.",
+    "errors": {
+      "account": "Log in with a real account to share your location.",
+      "location": "Location is unavailable. Use HTTPS, enable location services, and allow this site to access your location. You can still use Call.",
+      "network": "Location sharing could not be updated. Check your connection; the recipient may only see the last received position.",
+      "composer": "The SMS app could not be opened. Use Open SMS draft or copy the message below.",
+      "stop": "Updates have stopped on this device, but the server could not confirm ending the link. Try Stop sharing again; otherwise the link expires automatically.",
+      "expired": "Location sharing has expired. Choose Send location to create a new SMS and tracking link."
+    }
   }
 }

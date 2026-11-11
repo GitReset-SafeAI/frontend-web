@@ -4,6 +4,11 @@ const configSchema = z.object({
   dataMode: z.enum(['mock', 'api']).default('mock'),
   safetyMapMode: z.enum(['mock', 'api']).default('api'),
   authMode: z.enum(['demo', 'supabase']).default('demo'),
+  publicAppUrl: z.string().url().refine((value) => {
+    const url = new URL(value)
+    return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password
+      && !url.search && !url.hash && url.pathname === '/'
+  }, 'Use the public frontend origin').optional(),
   supabaseUrl: z.string().trim().optional(),
   supabasePublishableKey: z.string().trim().optional(),
   // Same guard as the mobile client: an HTTP(S) origin with no credentials,
@@ -21,6 +26,7 @@ export function parseEnvironment(values: {
   dataMode?: string
   safetyMapMode?: string
   authMode?: string
+  publicAppUrl?: string
   supabaseUrl?: string
   supabasePublishableKey?: string
   apiBaseUrl?: string
@@ -31,6 +37,7 @@ export function parseEnvironment(values: {
     safetyMapMode: values.safetyMapMode?.trim() || undefined,
     authMode: values.authMode?.trim() || undefined,
     apiBaseUrl: values.apiBaseUrl?.trim() || undefined,
+    publicAppUrl: values.publicAppUrl?.trim() || undefined,
   })
   if (!result.success) {
     // Avoid including environment values in diagnostics.
@@ -43,6 +50,7 @@ export const env = parseEnvironment({
   dataMode: import.meta.env.VITE_DATA_MODE,
   safetyMapMode: import.meta.env.VITE_SAFETY_MAP_MODE,
   authMode: import.meta.env.VITE_AUTH_MODE,
+  publicAppUrl: import.meta.env.VITE_PUBLIC_APP_URL,
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
   supabasePublishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
