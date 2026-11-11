@@ -40,6 +40,10 @@ vi.mock('@supabase/supabase-js', () => ({
 
 vi.mock('../features/emergency/phoneCall', () => ({ openPhoneCall: vi.fn() }))
 
+vi.mock('../features/emergency/sms', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../features/emergency/sms')>(), openSmsDraft: vi.fn(),
+}))
+import { openSmsDraft } from '../features/emergency/sms'
 import { openPhoneCall } from '../features/emergency/phoneCall'
 import { createClient } from '@supabase/supabase-js'
 import { services, selectServices } from '../services'
@@ -492,8 +496,10 @@ describe('slot-zero SOS calls', () => {
     const user = userEvent.setup()
     await screen.findByRole('link', { name: /call amma/i })
     await user.click(screen.getByRole('button', { name: /sos\. emergency help/i }))
-    expect(await screen.findByRole('heading', { name: /phone dialer opened/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /how would you like to get help/i })).toBeInTheDocument()
     expect(screen.queryByRole('timer')).not.toBeInTheDocument()
+    expect(openPhoneCall).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: /^call$/i }))
     expect(openPhoneCall).toHaveBeenCalledExactlyOnceWith('+94771234567')
   })
 
@@ -506,5 +512,111 @@ describe('slot-zero SOS calls', () => {
     expect(await screen.findByRole('heading', { name: /add an emergency contact first/i })).toBeInTheDocument()
     expect(screen.queryByRole('timer')).not.toBeInTheDocument()
     expect(openPhoneCall).not.toHaveBeenCalled()
+  })
+})
+
+describe('prefilled emergency SMS with location', () => {
+  const contact = { id: 'contact-0', slot: 0, name: 'Amma', phone: '+94771234567' }
+  const other = { id: 'contact-1', slot: 1, name: 'Kasun', phone: '+94777654321' }
+  const geolocationDescriptor = Object.getOwnPropertyDescriptor(navigator, 'geolocation')
+  const shareId = 'a'.repeat(43)
+  const fix = { coords: { latitude: 6.92, longitude: 79.86, accuracy: 12 } }
+  let watchUpdate: PositionCallback
+  let clearWatch: ReturnType<typeof vi.fn>
+  let rows: Record<string, unknown>
+  let apiFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    mock.getSession.mockResolvedValue(restored)
+    vi.stubGlobal('isSecureContext', true)
+    clearWatch = vi.fn()
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+      getCurrentPosition: vi.fn((success) => success(fix)),
+      watchPosition: vi.fn((success) => { watchUpdate = success; return 42 }),
+      clearWatch,
+    } })
+    rows = { share_id: shareId, position: { latitude: 6.92, longitude: 79.86 }, accuracy_m: 12,
+      updated_at: new Date().toISOString(), expires_at: new Date(Date.now() + 1_800_000).toISOString() }
+    apiFetch = vi.fn().mockImplementation(async (url: string, options: RequestInit) => {
+      if (url === '/api/v1/emergency-contacts') return new Response(JSON.stringify([contact, other]), { status: 200 })
+      if (options.method === 'DELETE') return new Response(null, { status: 204 })
+      return new Response(JSON.stringify(rows), { status: options.method === 'POST' ? 201 : 200 })
+    })
+    vi.stubGlobal('fetch', apiFetch)
+  })
+  afterEach(() => {
+    if (geolocationDescriptor) Object.defineProperty(navigator, 'geolocation', geolocationDescriptor)
+    else Reflect.deleteProperty(navigator, 'geolocation')
+    vi.restoreAllMocks()
+  })
+
+  it('prefills the selected number and fixed SOS text with a working read-only tracking URL', async () => {
+    renderApp('/sos')
+    const user = userEvent.setup()
+    await screen.findByRole('button', { name: /^send location$/i })
+    expect(openSmsDraft).not.toHaveBeenCalled()
+    expect(apiFetch.mock.calls.some(([, options]) => options.method === 'POST')).toBe(false)
+    await user.selectOptions(screen.getByRole('combobox', { name: /emergency contact/i }), other.id)
+    await user.click(screen.getByRole('button', { name: /^send location$/i }))
+    await waitFor(() => { expect(openSmsDraft).toHaveBeenCalledTimes(1) })
+    expect(openSmsDraft).toHaveBeenCalledWith(other.phone, expect.stringContaining('SOS: I may be in danger.'))
+    const message = vi.mocked(openSmsDraft).mock.calls[0][1]
+    expect(message).toContain('/track/' + shareId)
+    expect(message).not.toContain('mock-access-token')
+    expect(message).not.toContain('owner')
+    expect(screen.getByLabelText(/message preview/i)).toHaveValue(message)
+    const [, request] = apiFetch.mock.calls.find(([url, options]) =>
+      url === '/api/v1/emergency-location-shares' && options.method === 'POST')!
+    expect(JSON.parse(request.body)).toEqual({ position: { latitude: 6.92, longitude: 79.86 }, accuracy_m: 12 })
+    expect(request.headers.get('Authorization')).toBe('Bearer mock-access-token')
+    expect(openPhoneCall).not.toHaveBeenCalled()
+    expect(screen.getByText(/press Send in your Messages app/i)).toBeInTheDocument()
+  })
+
+  it('updates the shared location and revokes it when Stop sharing is chosen', async () => {
+    renderApp('/sos')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /^send location$/i }))
+    await screen.findByRole('button', { name: /stop sharing location/i })
+    const realNow = Date.now()
+    vi.spyOn(Date, 'now').mockReturnValue(realNow + 11_000)
+    await act(async () => { watchUpdate({ coords: { latitude: 6.93, longitude: 79.87, accuracy: 8 } } as GeolocationPosition) })
+    await waitFor(() => { expect(apiFetch.mock.calls.some(([, options]) => options.method === 'PATCH')).toBe(true) })
+    await user.click(screen.getByRole('button', { name: /stop sharing location/i }))
+    await waitFor(() => { expect(screen.queryByRole('button', { name: /stop sharing location/i })).not.toBeInTheDocument() })
+    expect(clearWatch).toHaveBeenCalledWith(42)
+    expect(apiFetch.mock.calls.some(([, options]) => options.method === 'DELETE')).toBe(true)
+  })
+
+  it('does not open an SMS or publish a location when GPS permission is denied', async () => {
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+      getCurrentPosition: vi.fn((_success, failure) => failure({ code: 1 })),
+      clearWatch,
+    } })
+    renderApp('/sos')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /^send location$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Location is unavailable/i)
+    expect(openSmsDraft).not.toHaveBeenCalled()
+    expect(apiFetch.mock.calls.some(([, options]) => options.method === 'POST')).toBe(false)
+  })
+
+  it('does not open SMS when creating a tracking link fails', async () => {
+    apiFetch.mockImplementation(async (url: string) => url === '/api/v1/emergency-contacts'
+      ? new Response(JSON.stringify([contact]), { status: 200 }) : new Response('{}', { status: 503 }))
+    renderApp('/sos')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: /^send location$/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/sharing could not be updated/i)
+    expect(openSmsDraft).not.toHaveBeenCalled()
+  })
+
+  it('lets a recipient open the tracker in a browser without logging in', async () => {
+    mock.getSession.mockResolvedValue(loggedOut)
+    renderApp('/track/' + shareId)
+    expect(await screen.findByTestId('emergency-location-map')).toBeInTheDocument()
+    expect(screen.getByText(/Last updated:/i)).toBeInTheDocument()
+    const [, request] = apiFetch.mock.calls.find(([url]) => url.includes('/emergency-location-shares/'))!
+    expect(request.headers.has('Authorization')).toBe(false)
   })
 })

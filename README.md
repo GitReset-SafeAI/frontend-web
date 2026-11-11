@@ -205,3 +205,5 @@ Nadhiya Nashath, Sathya Abeytunge, Anuki Wanniarachchi, Ravindi Fernando.
 ## License
 
 Released under the [MIT License](LICENSE).
+
+SMS location sharing needs HTTPS and browser GPS permission. Optionally set VITE_PUBLIC_APP_URL to the public frontend origin for SMS links. The recipient opens /track/:shareId without logging in. Shares expire after 30 minutes; prototype storage is in one backend process and does not survive restart.

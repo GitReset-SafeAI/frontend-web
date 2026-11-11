@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 
 import { AccountPage, LoginPage } from '../features/account'
+import { SharedEmergencyLocationPage } from '../features/emergency/screens/SharedEmergencyLocationPage'
 import { EmergencyPage, SosPage } from '../features/emergency'
 import { LandingPage } from '../features/landing/LandingPage'
 import { NotFoundPage } from '../features/landing/NotFoundPage'
@@ -24,6 +25,7 @@ export function AppRoutes() {
           <Route path="/report/*" element={<ReportRoutes />} />
           <Route path="/safety" element={<SafetyPage />} />
           {/* A shared journey: opened by whoever the traveller sent the link to. */}
+          <Route path="/track/:shareId" element={<SharedEmergencyLocationPage />} />
           <Route path="/j/:shareId" element={<SharedJourneyPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

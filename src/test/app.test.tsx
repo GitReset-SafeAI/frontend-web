@@ -130,24 +130,27 @@ describe('report flow', () => {
 
 describe('emergency', () => {
   beforeEach(() => { vi.mocked(openPhoneCall).mockReset() })
-  it('opens the dialer once on direct SOS entry, including StrictMode', async () => {
+  it('shows Call and Send location without opening a phone app on entry', async () => {
     await seedAccount([{ name: 'Amma', phone: '+94771234567', relationship: 'family' }])
     renderApp('/sos', { strict: true })
-    expect(await screen.findByRole('heading', { name: /phone dialer opened/i })).toBeInTheDocument()
-    expect(openPhoneCall).toHaveBeenCalledExactlyOnceWith('+94771234567')
+    expect(await screen.findByRole('heading', { name: /how would you like to get help/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^call$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^send location$/i })).toBeInTheDocument()
+    expect(openPhoneCall).not.toHaveBeenCalled()
     expect(screen.queryByRole('timer')).not.toBeInTheDocument()
   })
 
-  it('opens the dialer immediately from the emergency button without dialing twice', async () => {
+  it('opens the choice screen from SOS and calls only after choosing Call', async () => {
     const user = userEvent.setup()
     await seedAccount([{ name: 'Amma', phone: '+94771234567' }])
     renderApp('/emergency')
     await screen.findByRole('link', { name: /call amma/i })
     await user.click(screen.getByRole('button', { name: /sos\. emergency help/i }))
+    expect(await screen.findByRole('heading', { name: /how would you like to get help/i })).toBeInTheDocument()
+    expect(openPhoneCall).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: /^call$/i }))
     expect(openPhoneCall).toHaveBeenCalledExactlyOnceWith('+94771234567')
-    expect(await screen.findByRole('heading', { name: /phone dialer opened/i })).toBeInTheDocument()
     expect(screen.queryByRole('timer')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /call now/i })).not.toBeInTheDocument()
   })
 
   it('lists contacts on the emergency page as tap-to-call links', async () => {
